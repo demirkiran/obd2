@@ -1524,6 +1524,9 @@ async function connectDevice() {
     await connectSerial();
   }
 }
+
+// ── BLUETOOTH ──
+async function connectBluetooth() {
   if (!navigator.bluetooth) {
     showNotify('❌ Web Bluetooth desteklenmiyor. Chrome/Edge kullanın.', 4000);
     log('err', 'Web Bluetooth bu tarayıcıda desteklenmiyor');
