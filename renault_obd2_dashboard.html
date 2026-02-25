@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#060a0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CLIP OBD2">
+<title>Renault CLIP OBD2 — Megane 2015</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #060a0f;
+    --bg2: #0c1218;
+    --bg3: #111820;
+    --panel: #0f1822;
+    --border: #1a2840;
+    --border2: #1e3050;
+    --renault: #f0c030;
+    --renault2: #e8a800;
+    --accent: #00c8ff;
+    --accent2: #0088cc;
+    --green: #00e898;
+    --red: #ff3040;
+    --orange: #ff8020;
+    --white: #c8d8e8;
+    --dim: #4a6080;
+    --dimmer: #2a3848;
+    --glow-yellow: 0 0 20px rgba(240,192,48,0.4);
+    --glow-blue: 0 0 20px rgba(0,200,255,0.3);
+    --glow-green: 0 0 20px rgba(0,232,152,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(0,200,255,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(240,192,48,0.04) 0%, transparent 60%);
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 60px;
+    background: linear-gradient(90deg, #060a0f 0%, #0a1420 50%, #060a0f 100%);
+    border-bottom: 1px solid var(--border2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-diamond {
+    width: 36px;
+    height: 36px;
+    position: relative;
+  }
+
+  .logo-diamond svg { width: 100%; height: 100%; }
+
+  .logo-text {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--renault);
+    text-shadow: var(--glow-yellow);
+  }
+
+  .logo-sub {
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+    font-weight: 300;
+  }
+
+  .header-center {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    text-align: center;
+    letter-spacing: 0.1em;
+  }
+
+  .header-center span {
+    color: var(--accent);
+    display: block;
+    font-size: 12px;
+  }
+
+  .connection-panel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .conn-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+  }
+
+  .conn-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--dimmer);
+    transition: all 0.3s;
+  }
+
+  .conn-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse-dot 2s infinite; }
+  .conn-dot.connecting { background: var(--orange); box-shadow: 0 0 8px var(--orange); animation: blink 0.6s infinite; }
+  .conn-dot.error { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .btn {
+    padding: 7px 16px;
+    border: 1px solid;
+    border-radius: 4px;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .btn:hover::before { opacity: 1; }
+
+  .btn-primary {
+    background: rgba(240,192,48,0.1);
+    border-color: var(--renault);
+    color: var(--renault);
+  }
+  .btn-primary::before { background: rgba(240,192,48,0.1); }
+  .btn-primary:hover { box-shadow: var(--glow-yellow); color: #fff; background: rgba(240,192,48,0.2); }
+
+  .btn-secondary {
+    background: rgba(0,200,255,0.08);
+    border-color: var(--accent2);
+    color: var(--accent);
+  }
+  .btn-secondary:hover { box-shadow: var(--glow-blue); background: rgba(0,200,255,0.15); }
+
+  .btn-danger {
+    background: rgba(255,48,64,0.1);
+    border-color: #ff3040;
+    color: var(--red);
+  }
+  .btn-danger:hover { background: rgba(255,48,64,0.2); }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: grid;
+    grid-template-columns: 260px 1fr 260px;
+    grid-template-rows: auto 1fr auto;
+    gap: 0;
+    min-height: calc(100vh - 60px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 16px;
+    background: var(--bg2);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .sidebar-right {
+    border-left: 1px solid var(--border);
+    border-right: none;
+  }
+
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--dim);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  /* ── CATEGORY TABS ── */
+  .cat-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .cat-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--dim);
+  }
+
+  .cat-tab:hover { background: rgba(255,255,255,0.04); color: var(--white); }
+  .cat-tab.active {
+    background: rgba(240,192,48,0.08);
+    border-color: rgba(240,192,48,0.3);
+    color: var(--renault);
+  }
+
+  .cat-icon {
+    width: 18px;
+    height: 18px;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  .cat-tab.active .cat-icon { opacity: 1; }
+
+  /* ── PID LIST ── */
+  .pid-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .pid-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 11px;
+    border: 1px solid transparent;
+  }
+
+  .pid-item:hover { background: rgba(0,200,255,0.06); border-color: rgba(0,200,255,0.1); }
+  .pid-item.active {
+    background: rgba(0,200,255,0.1);
+    border-color: rgba(0,200,255,0.25);
+    color: var(--accent);
+  }
+
+  .pid-name {
+    font-weight: 400;
+    color: inherit;
+    font-size: 11px;
+  }
+
+  .pid-code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--dimmer);
+    background: rgba(255,255,255,0.04);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  .pid-item.active .pid-code { color: var(--accent2); }
+
+  /* ── CENTER CONTENT ── */
+  .center {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── GAUGES ROW ── */
+  .gauges-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .gauge-cell {
+    background: var(--bg);
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gauge-cell::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--border2);
+    transition: all 0.3s;
+  }
+
+  .gauge-cell.active-gauge::after {
+    background: var(--accent);
+    box-shadow: var(--glow-blue);
+  }
+
+  .gauge-cell.warn::after { background: var(--orange); }
+  .gauge-cell.crit::after { background: var(--red); }
+
+  .gauge-svg-wrap {
+    position: relative;
+    width: 120px;
+    height: 70px;
+  }
+
+  .gauge-arc-svg {
+    width: 120px;
+    height: 70px;
+    overflow: visible;
+  }
+
+  .gauge-value-big {
+    font-family: 'Orbitron', monospace;
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    text-align: center;
+    margin-top: 4px;
+    line-height: 1;
+    transition: color 0.3s;
+  }
+
+  .gauge-value-big.warn { color: var(--orange); text-shadow: 0 0 12px rgba(255,128,32,0.5); }
+  .gauge-value-big.crit { color: var(--red); text-shadow: 0 0 12px rgba(255,48,64,0.6); animation: blink 0.8s infinite; }
+
+  .gauge-unit {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 0.15em;
+    margin-top: 2px;
+  }
+
+  .gauge-label {
+    font-size: 11px;
+    color: var(--dim);
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  .gauge-range {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--dimmer);
+    margin-top: 4px;
+  }
+
+  /* ── DATA GRID ── */
+  .data-grid-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
+  }
+
+  .data-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .data-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .data-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--accent2);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .data-card:hover { border-color: var(--border2); }
+  .data-card:hover::before { opacity: 1; }
+  .data-card.selected { border-color: rgba(0,200,255,0.35); background: rgba(0,200,255,0.05); }
+  .data-card.selected::before { opacity: 1; }
+
+  .dc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+
+  .dc-name {
+    font-size: 11px;
+    color: var(--dim);
+    font-weight: 300;
+    line-height: 1.3;
+    max-width: 130px;
+  }
+
+  .dc-pid {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--dimmer);
+    background: var(--bg);
+    padding: 2px 5px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .dc-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    transition: all 0.2s;
+  }
+
+  .dc-value.warn { color: var(--orange); }
+  .dc-value.crit { color: var(--red); }
+
+  .dc-unit {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    margin-left: 3px;
+  }
+
+  .dc-bar-wrap {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .dc-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent2);
+    transition: width 0.4s ease;
+  }
+
+  .dc-bar.warn { background: var(--orange); }
+  .dc-bar.crit { background: var(--red); }
+  .dc-bar.good { background: var(--green); }
+
+  /* ── TERMINAL / LOG ── */
+  .terminal {
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+  }
+
+  .terminal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+
+  .terminal-title {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--dim);
+  }
+
+  .terminal-body {
+    height: 90px;
+    overflow-y: auto;
+    padding: 8px 16px;
+    display: flex;
+    flex-direction: column-reverse;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .log-line {
+    font-size: 11px;
+    padding: 1px 0;
+    display: flex;
+    gap: 8px;
+  }
+
+  .log-time { color: var(--dimmer); flex-shrink: 0; }
+  .log-type-tx { color: var(--accent); }
+  .log-type-rx { color: var(--green); }
+  .log-type-err { color: var(--red); }
+  .log-type-info { color: var(--renault); }
+  .log-msg { color: var(--white); }
+
+  /* ── RIGHT SIDEBAR ── */
+  .dtc-panel { display: flex; flex-direction: column; gap: 8px; }
+
+  .dtc-count-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .dtc-count-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--green);
+    line-height: 1;
+  }
+
+  .dtc-count-num.has-errors { color: var(--red); text-shadow: 0 0 20px rgba(255,48,64,0.4); }
+
+  .dtc-count-label {
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+
+  .dtc-list { display: flex; flex-direction: column; gap: 4px; }
+
+  .dtc-code {
+    background: rgba(255,48,64,0.08);
+    border: 1px solid rgba(255,48,64,0.2);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .dtc-code-num {
+    font-size: 13px;
+    color: var(--red);
+    font-weight: 600;
+  }
+
+  .dtc-code-desc {
+    font-size: 10px;
+    color: var(--dim);
+    margin-top: 2px;
+  }
+
+  .freeze-data {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+  }
+
+  .freeze-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  .freeze-row:last-child { border-bottom: none; }
+  .freeze-key { color: var(--dim); }
+  .freeze-val { font-family: 'Share Tech Mono', monospace; color: var(--white); }
+
+  /* ── CONNECT MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(6,10,15,0.92);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.hidden { display: none; }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    width: 460px;
+    padding: 32px;
+    position: relative;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 60px rgba(0,200,255,0.05);
+  }
+
+  .modal-diamond {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 40px;
+  }
+
+  .modal-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--renault);
+    text-align: center;
+    margin-bottom: 6px;
+    text-shadow: var(--glow-yellow);
+  }
+
+  .modal-sub {
+    font-size: 12px;
+    color: var(--dim);
+    text-align: center;
+    margin-bottom: 28px;
+    letter-spacing: 0.05em;
+  }
+
+  .conn-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .conn-option {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .conn-option:hover { border-color: var(--accent2); background: rgba(0,200,255,0.05); }
+  .conn-option.selected { border-color: var(--accent); background: rgba(0,200,255,0.1); box-shadow: var(--glow-blue); }
+
+  .conn-option-icon { font-size: 28px; margin-bottom: 8px; }
+
+  .conn-option-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .conn-option-desc { font-size: 10px; color: var(--dim); }
+
+  .baud-select {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--white);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    padding: 8px 12px;
+    width: 100%;
+    margin-bottom: 12px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .baud-select:focus { border-color: var(--accent2); }
+
+  .demo-notice {
+    background: rgba(240,192,48,0.06);
+    border: 1px solid rgba(240,192,48,0.2);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--renault);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .modal-btns {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  /* ── PROTOCOL BADGE ── */
+  .protocol-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    background: rgba(0,232,152,0.1);
+    border: 1px solid rgba(0,232,152,0.25);
+    border-radius: 3px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ── ANDROID / MOBILE ── */
+  .android-warn {
+    background: rgba(255,128,32,0.08);
+    border: 1px solid rgba(255,128,32,0.3);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--orange);
+    margin-bottom: 12px;
+    line-height: 1.6;
+    display: none;
+  }
+
+  .https-warn {
+    background: rgba(255,48,64,0.1);
+    border: 1px solid rgba(255,48,64,0.3);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--red);
+    margin-bottom: 12px;
+    line-height: 1.6;
+    display: none;
+  }
+
+  .reconnect-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(0,232,152,0.1);
+    border: 1px solid rgba(0,232,152,0.35);
+    color: var(--green);
+    border-radius: 6px;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    display: none;
+    transition: all 0.2s;
+  }
+
+  .reconnect-btn:hover { background: rgba(0,232,152,0.2); }
+
+  .pwa-hint {
+    font-size: 10px;
+    color: var(--dim);
+    text-align: center;
+    margin-top: 8px;
+    display: none;
+  }
+
+  /* ── RESPONSIVE LAYOUT ── */
+  @media (max-width: 900px) {
+    .main {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+
+    header {
+      padding: 0 12px;
+      height: auto;
+      min-height: 56px;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
+    .header-center { display: none; }
+
+    .logo-text { font-size: 12px; }
+    .logo-sub { display: none; }
+    .logo-diamond { width: 28px; height: 28px; }
+
+    .sidebar, .sidebar-right {
+      display: none;
+    }
+
+    .gauges-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .data-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .nav-tabs {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .nav-tab {
+      white-space: nowrap;
+      padding: 10px 14px;
+      font-size: 8px;
+    }
+
+    .terminal-body { height: 70px; }
+
+    .gauge-cell { padding: 14px 10px; }
+    .gauge-svg-wrap { width: 100px; height: 60px; }
+    .gauge-arc-svg { width: 100px; height: 60px; }
+    .gauge-value-big { font-size: 22px; }
+    .gauge-label { font-size: 10px; }
+
+    .dc-value { font-size: 18px; }
+
+    .refresh-hz { display: none; }
+    .btn { padding: 6px 12px; font-size: 9px; }
+  }
+
+  @media (max-width: 480px) {
+    .gauges-row { grid-template-columns: repeat(2, 1fr); }
+    .data-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .data-grid-wrap { padding: 10px; }
+    .gauge-value-big { font-size: 20px; }
+  }
+
+  /* ── SCAN ANIMATION ── */
+  .scan-line {
+    position: fixed;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    pointer-events: none;
+    animation: scan 4s linear infinite;
+  }
+
+  @keyframes scan {
+    0% { top: 60px; opacity: 0.5; }
+    99% { top: 100vh; opacity: 0; }
+    100% { top: 60px; opacity: 0; }
+  }
+
+  /* notify */
+  .notify {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--white);
+    z-index: 2000;
+    animation: slide-in 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+
+  .notify.hidden { display: none; }
+
+  @keyframes slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .blink-cursor::after {
+    content: '_';
+    animation: blink 1s infinite;
+  }
+
+  .vehicle-info {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+
+  .vi-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 11px;
+  }
+
+  .vi-key { color: var(--dim); }
+  .vi-val { font-family: 'Share Tech Mono', monospace; color: var(--accent); font-size: 11px; }
+
+  /* Refresh rate indicator */
+  .refresh-hz {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--dimmer);
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+  }
+
+  /* header nav tabs */
+  .nav-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+
+  .nav-tab {
+    padding: 10px 20px;
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    color: var(--dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+
+  .nav-tab:hover { color: var(--white); background: rgba(255,255,255,0.03); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(0,200,255,0.05); }
+</style>
+</head>
+<body>
+
+<div class="scan-line"></div>
+
+<!-- ── CONNECT MODAL ── -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <svg class="modal-diamond" viewBox="0 0 40 40">
+      <polygon points="20,2 38,20 20,38 2,20" fill="none" stroke="#f0c030" stroke-width="1.5"/>
+      <polygon points="20,8 32,20 20,32 8,20" fill="rgba(240,192,48,0.15)"/>
+    </svg>
+    <div class="modal-title">RENAULT CLIP OBD2</div>
+    <div class="modal-sub">MEGANE 2015 • 1.6 BENZİNLİ • H4M</div>
+
+    <!-- HTTPS uyarısı (Android'de dosyadan açılırsa) -->
+    <div class="https-warn" id="httpsWarn">
+      ⚠️ <strong>Bluetooth için HTTPS gerekli!</strong><br>
+      Bu dosyayı doğrudan açtınız (file://). Android Chrome'da Web Bluetooth sadece HTTPS üzerinde çalışır.<br>
+      <strong>Çözüm:</strong> Demo modu kullanın veya dosyayı bir HTTPS sunucusuna yükleyin.
+    </div>
+
+    <!-- Android bilgi -->
+    <div class="android-warn" id="androidWarn">
+      📱 <strong>Android Chrome tespit edildi.</strong><br>
+      USB/Serial desteklenmez. Yalnızca <strong>Bluetooth ELM327</strong> kullanabilirsiniz.<br>
+      Konum izni gerekebilir (BT taraması için Android şartı).
+    </div>
+
+    <!-- Önceki cihaza yeniden bağlan -->
+    <button class="reconnect-btn" id="reconnectBtn" onclick="reconnectLastDevice()">
+      ♻️ SON BAĞLANAN OBD2 CİHAZINA BAĞLAN
+    </button>
+
+    <div class="conn-options">
+      <div class="conn-option selected" id="opt-bt" onclick="selectConn('bt')">
+        <div class="conn-option-icon">📡</div>
+        <div class="conn-option-title">BLUETOOTH</div>
+        <div class="conn-option-desc">BLE ELM327<br>Android & PC Chrome</div>
+      </div>
+      <div class="conn-option" id="opt-serial" onclick="selectConn('serial')">
+        <div class="conn-option-icon">🔌</div>
+        <div class="conn-option-title">SERIAL/USB</div>
+        <div class="conn-option-desc">USB ELM327<br>Sadece PC Chrome/Edge</div>
+      </div>
+    </div>
+
+    <select class="baud-select" id="baudRate">
+      <option value="9600">9600 baud (ELM327 varsayılan)</option>
+      <option value="38400" selected>38400 baud (önerilen)</option>
+      <option value="57600">57600 baud</option>
+      <option value="115200">115200 baud</option>
+    </select>
+
+    <div class="demo-notice">
+      ⚡ OBD2 cihazınız yoksa <strong>Demo Modu</strong> ile tüm arayüzü test edebilirsiniz. Renault H4M motor PID simülasyonu içerir.
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="connectDevice()">BAĞLAN</button>
+      <button class="btn btn-secondary" onclick="startDemo()">DEMO MODU</button>
+    </div>
+
+    <div class="pwa-hint" id="pwaHint">
+      💡 Tarayıcı menüsünden "Ana Ekrana Ekle" yapabilirsiniz
+    </div>
+  </div>
+</div>
+
+<!-- ── NOTIFICATION ── -->
+<div class="notify hidden" id="notify"></div>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">
+    <div class="logo-diamond">
+      <svg viewBox="0 0 36 36">
+        <polygon points="18,1 35,18 18,35 1,18" fill="none" stroke="#f0c030" stroke-width="1.5"/>
+        <polygon points="18,6 30,18 18,30 6,18" fill="rgba(240,192,48,0.12)"/>
+        <polygon points="18,11 25,18 18,25 11,18" fill="rgba(240,192,48,0.25)"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">RENAULT CLIP</div>
+      <div class="logo-sub">OBD2 DASHBOARD v2.4</div>
+    </div>
+  </div>
+
+  <div class="header-center">
+    <span id="vehicleLabel">MEGANE IV • 1.6 16V • H4M</span>
+    <span id="protocolLabel">ISO 15765-4 CAN (11 bit ID, 500 kbps)</span>
+  </div>
+
+  <div class="connection-panel">
+    <div class="refresh-hz" id="refreshHz">0 Hz</div>
+    <div class="conn-status">
+      <div class="conn-dot" id="connDot"></div>
+      <span id="connText">BAĞLI DEĞİL</span>
+    </div>
+    <button class="btn btn-primary" id="btnConnect" onclick="showModal()">BAĞLAN</button>
+    <button class="btn btn-danger hidden" id="btnDisconnect" onclick="disconnect()">KES</button>
+  </div>
+</header>
+
+<!-- ── NAV TABS ── -->
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="switchTab('live')">📊 CANLI VERİ</div>
+  <div class="nav-tab" onclick="switchTab('dtc')">🔴 ARIZA KODLARI</div>
+  <div class="nav-tab" onclick="switchTab('freeze')">❄️ DONDURULMUŞ VERİ</div>
+  <div class="nav-tab" onclick="switchTab('info')">ℹ️ ARAÇ BİLGİSİ</div>
+</div>
+
+<!-- ── MAIN LAYOUT ── -->
+<div class="main" id="mainLayout">
+
+  <!-- LEFT SIDEBAR: CATEGORIES & PID LIST -->
+  <div class="sidebar">
+    <div class="section-title">SİSTEM KATEGORİLERİ</div>
+    <div class="cat-tabs" id="catTabs"></div>
+
+    <div class="section-title" style="margin-top:8px">PID SEÇİMİ</div>
+    <div class="pid-list" id="pidList"></div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+    <!-- MAIN GAUGES -->
+    <div class="gauges-row" id="gaugesRow"></div>
+
+    <!-- DATA GRID -->
+    <div class="data-grid-wrap">
+      <div class="data-grid" id="dataGrid"></div>
+    </div>
+
+    <!-- TERMINAL -->
+    <div class="terminal">
+      <div class="terminal-header">
+        <span class="terminal-title">OBD2 TERMINAL — ELM327</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="protocol-badge" id="elmVersion">ELM327 v1.5</span>
+          <button class="btn btn-secondary" style="padding:3px 10px;font-size:9px" onclick="clearLog()">TEMİZLE</button>
+        </div>
+      </div>
+      <div class="terminal-body" id="termBody"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR: DTC & INFO -->
+  <div class="sidebar sidebar-right">
+    <div class="section-title">DTC — ARIZA KODLARI</div>
+    <div class="dtc-panel">
+      <div class="dtc-count-box">
+        <div class="dtc-count-num" id="dtcCount">0</div>
+        <div class="dtc-count-label">KAYITLI KOD</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary" style="flex:1;font-size:9px;padding:6px" onclick="readDTC()">OKU</button>
+        <button class="btn btn-danger" style="flex:1;font-size:9px;padding:6px" onclick="clearDTC()">SİL</button>
+      </div>
+      <div class="dtc-list" id="dtcList">
+        <div style="font-size:11px;color:var(--dim);text-align:center;padding:10px">
+          DTC okumak için butona basın
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:8px">ARAÇ BİLGİSİ</div>
+    <div class="vehicle-info">
+      <div class="vi-row"><span class="vi-key">VIN</span><span class="vi-val" id="vinVal">—</span></div>
+      <div class="vi-row"><span class="vi-key">Motor</span><span class="vi-val">H4M 1.6 16V</span></div>
+      <div class="vi-row"><span class="vi-key">Yıl</span><span class="vi-val">2015</span></div>
+      <div class="vi-row"><span class="vi-key">Protokol</span><span class="vi-val" id="protocolShort">CAN</span></div>
+      <div class="vi-row"><span class="vi-key">Voltaj</span><span class="vi-val" id="voltageVal">—</span></div>
+      <div class="vi-row"><span class="vi-key">ELM Sürüm</span><span class="vi-val" id="elmVer">—</span></div>
+    </div>
+
+    <div class="section-title" style="margin-top:8px">DONMUŞ ÇERÇEVE</div>
+    <div class="freeze-data" id="freezePanel">
+      <div class="freeze-row"><span class="freeze-key">DTC</span><span class="freeze-val">—</span></div>
+      <div class="freeze-row"><span class="freeze-key">RPM</span><span class="freeze-val">—</span></div>
+      <div class="freeze-row"><span class="freeze-key">Hız</span><span class="freeze-val">—</span></div>
+      <div class="freeze-row"><span class="freeze-key">Yük %</span><span class="freeze-val">—</span></div>
+      <div class="freeze-row"><span class="freeze-key">Soğutma °C</span><span class="freeze-val">—</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  RENAULT MEGANE 2015 1.6 H4M — PID DATABASE
+// ══════════════════════════════════════════════
+const CATEGORIES = [
+  { id:'engine',   name:'Motor',         icon:'⚙️' },
+  { id:'fuel',     name:'Yakıt Sistemi', icon:'⛽' },
+  { id:'emission', name:'Emisyon',       icon:'💨' },
+  { id:'temp',     name:'Sıcaklıklar',  icon:'🌡️' },
+  { id:'sensors',  name:'Sensörler',     icon:'📡' },
+  { id:'electric', name:'Elektrik',      icon:'⚡' },
+];
+
+const PIDS = [
+  // ENGINE
+  { id:'rpm',    cat:'engine',   mode:'01', pid:'0C', name:'Motor Devri',        unit:'RPM',   min:0, max:7000, warnHi:5500, critHi:6500, gauge:true, formula: v => ((v[0]*256+v[1])/4).toFixed(0) },
+  { id:'speed',  cat:'engine',   mode:'01', pid:'0D', name:'Araç Hızı',          unit:'km/h',  min:0, max:250,  warnHi:200,  critHi:220,  gauge:true, formula: v => v[0] },
+  { id:'load',   cat:'engine',   mode:'01', pid:'04', name:'Motor Yükü',         unit:'%',     min:0, max:100,  warnHi:90,   critHi:98,   gauge:false, formula: v => (v[0]*100/255).toFixed(1) },
+  { id:'timing', cat:'engine',   mode:'01', pid:'0E', name:'Ateşleme Avansı',    unit:'°',     min:-64, max:63.5, formula: v => (v[0]/2 - 64).toFixed(1) },
+  { id:'runtime',cat:'engine',   mode:'01', pid:'1F', name:'Motor Çalışma Süresi',unit:'sn',   min:0, max:65535, formula: v => v[0]*256+v[1] },
+  { id:'map',    cat:'engine',   mode:'01', pid:'0B', name:'Emme Manifolt Basıncı',unit:'kPa', min:0, max:255,  warnHi:200, formula: v => v[0] },
+  { id:'maf',    cat:'engine',   mode:'01', pid:'10', name:'Hava Kütlesi (MAF)',  unit:'g/s',  min:0, max:655,  formula: v => ((v[0]*256+v[1])/100).toFixed(2) },
+  { id:'tps',    cat:'engine',   mode:'01', pid:'11', name:'Gaz Kelebeği Pozisyonu',unit:'%',  min:0, max:100,  gauge:false, formula: v => (v[0]*100/255).toFixed(1) },
+  { id:'abs_tps',cat:'engine',   mode:'01', pid:'49', name:'Mutlak Gaz Kelebeği',unit:'%',    min:0, max:100,  formula: v => (v[0]*100/255).toFixed(1) },
+  // FUEL
+  { id:'stft1',  cat:'fuel',     mode:'01', pid:'06', name:'Kısa Dönem Yakıt Ayarı B1',unit:'%', min:-100, max:99.2, formula: v => ((v[0]-128)*100/128).toFixed(1) },
+  { id:'ltft1',  cat:'fuel',     mode:'01', pid:'07', name:'Uzun Dönem Yakıt Ayarı B1',unit:'%',min:-100, max:99.2, formula: v => ((v[0]-128)*100/128).toFixed(1) },
+  { id:'fuel_lvl',cat:'fuel',    mode:'01', pid:'2F', name:'Yakıt Tankı Seviyesi',unit:'%',    min:0, max:100,  warnLo:15, critLo:8, gauge:false, formula: v => (v[0]*100/255).toFixed(1) },
+  { id:'fuel_sys1',cat:'fuel',   mode:'01', pid:'03', name:'Yakıt Sistemi 1',    unit:'',     min:0, max:8,   formula: v => {const m={1:'OL',2:'CL',4:'OL-Açılış',8:'OL-Arıza',16:'CL-Arıza'};return m[v[0]]||v[0]} },
+  { id:'fuel_pres',cat:'fuel',   mode:'01', pid:'0A', name:'Yakıt Basıncı',      unit:'kPa',  min:0, max:765, formula: v => v[0]*3 },
+  { id:'eng_fuel',cat:'fuel',    mode:'01', pid:'5E', name:'Yakıt Tüketimi',     unit:'L/h',  min:0, max:3212, formula: v => ((v[0]*256+v[1])*0.05).toFixed(1) },
+  // EMISSION
+  { id:'o2_b1s1',cat:'emission', mode:'01', pid:'14', name:'O2 Sensör B1S1',     unit:'V',    min:0, max:1.275, formula: v => (v[0]/200).toFixed(3) },
+  { id:'o2_b1s2',cat:'emission', mode:'01', pid:'15', name:'O2 Sensör B1S2',     unit:'V',    min:0, max:1.275, formula: v => (v[0]/200).toFixed(3) },
+  { id:'eobd',   cat:'emission', mode:'01', pid:'01', name:'OBD Hazırlık',       unit:'',     min:0, max:1, formula: v => (v[1]&0x20)?'HAZIR':'HAZIR DEĞİL' },
+  { id:'evap_vp',cat:'emission', mode:'01', pid:'32', name:'EVAP Buharlaşma Basıncı',unit:'Pa', min:-8192, max:8191.75, formula: v => {let r=v[0]*256+v[1];if(r>32767)r-=65536;return (r/4).toFixed(2)} },
+  { id:'cata',   cat:'emission', mode:'01', pid:'3C', name:'Katalitik Konvertör Sıcaklığı',unit:'°C', min:-40, max:6513, formula: v => ((v[0]*256+v[1])/10-40).toFixed(1) },
+  // TEMPERATURES
+  { id:'coolant',cat:'temp',     mode:'01', pid:'05', name:'Soğutma Suyu Sıcaklığı',unit:'°C',min:-40, max:215, warnHi:100, critHi:110, gauge:true, formula: v => v[0]-40 },
+  { id:'iat',    cat:'temp',     mode:'01', pid:'0F', name:'Emme Havası Sıcaklığı',unit:'°C', min:-40, max:215, warnHi:55, formula: v => v[0]-40 },
+  { id:'amb_air',cat:'temp',     mode:'01', pid:'46', name:'Dış Hava Sıcaklığı', unit:'°C',  min:-40, max:215, formula: v => v[0]-40 },
+  { id:'oil_tmp',cat:'temp',     mode:'01', pid:'5C', name:'Motor Yağı Sıcaklığı',unit:'°C', min:-40, max:215, warnHi:130, critHi:150, formula: v => v[0]-40 },
+  // SENSORS
+  { id:'baro',   cat:'sensors',  mode:'01', pid:'33', name:'Barometrik Basınç',   unit:'kPa', min:0, max:255, formula: v => v[0] },
+  { id:'acc_tps',cat:'sensors',  mode:'01', pid:'4A', name:'Acc. Pedal Pozisyonu D',unit:'%', min:0, max:100, formula: v => (v[0]*100/255).toFixed(1) },
+  { id:'acc_tps2',cat:'sensors', mode:'01', pid:'4B', name:'Acc. Pedal Pozisyonu E',unit:'%', min:0, max:100, formula: v => (v[0]*100/255).toFixed(1) },
+  { id:'eto',    cat:'sensors',  mode:'01', pid:'44', name:'Eşdeğer Yakıt Oranı', unit:'λ',  min:0, max:2, formula: v => ((v[0]*256+v[1])*2/65535).toFixed(3) },
+  { id:'vpwr',   cat:'electric', mode:'AT', pid:'RV', name:'OBD Voltajı',         unit:'V',  min:10, max:16, warnLo:11.5, critLo:10.5, formula: v => parseFloat(v) },
+  { id:'ctrl_m', cat:'electric', mode:'01', pid:'67', name:'Motor Soğutma Kontrolü',unit:'',min:0, max:255, formula: v => v[0] },
+];
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let state = {
+  connected: false,
+  mode: null, // 'bt', 'serial', 'demo'
+  activeCat: 'engine',
+  connType: 'bt',
+  port: null,
+  btDevice: null,
+  btCharTx: null,
+  btCharRx: null,
+  reader: null,
+  writer: null,
+  values: {},
+  demo: false,
+  demoInterval: null,
+  refreshCount: 0,
+  lastRefreshTime: Date.now(),
+  hzInterval: null,
+};
+
+// ══════════════════════════════════════════════
+//  INIT UI
+// ══════════════════════════════════════════════
+function initUI() {
+  renderCategories();
+  renderPidList();
+  renderGauges();
+  renderDataGrid();
+}
+
+function renderCategories() {
+  const el = document.getElementById('catTabs');
+  el.innerHTML = CATEGORIES.map(c => `
+    <div class="cat-tab ${c.id === state.activeCat ? 'active' : ''}" onclick="setCategory('${c.id}')">
+      <span class="cat-icon">${c.icon}</span>
+      <span>${c.name}</span>
+    </div>
+  `).join('');
+}
+
+function setCategory(cat) {
+  state.activeCat = cat;
+  renderCategories();
+  renderPidList();
+}
+
+function renderPidList() {
+  const el = document.getElementById('pidList');
+  const pids = PIDS.filter(p => p.cat === state.activeCat);
+  el.innerHTML = pids.map(p => `
+    <div class="pid-item" id="pidItem_${p.id}">
+      <span class="pid-name">${p.name}</span>
+      <span class="pid-code">${p.mode === 'AT' ? 'AT' : p.mode+p.pid}</span>
+    </div>
+  `).join('');
+}
+
+function renderGauges() {
+  const gaugesPids = PIDS.filter(p => p.gauge);
+  const el = document.getElementById('gaugesRow');
+  el.innerHTML = gaugesPids.map(p => `
+    <div class="gauge-cell" id="gaugeCell_${p.id}">
+      <div class="gauge-svg-wrap">
+        <svg class="gauge-arc-svg" viewBox="0 0 120 70" id="gaugeSvg_${p.id}">
+          <defs>
+            <linearGradient id="arcGrad_${p.id}" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#1a2840"/>
+              <stop offset="100%" style="stop-color:#1e3050"/>
+            </linearGradient>
+          </defs>
+          <!-- BG arc -->
+          <path d="${arcPath(60, 68, 50, -210, 30)}" fill="none" stroke="url(#arcGrad_${p.id})" stroke-width="8" stroke-linecap="round"/>
+          <!-- Value arc -->
+          <path d="${arcPath(60, 68, 50, -210, 30)}" fill="none" stroke="#1e3a5f" stroke-width="8" stroke-linecap="round" id="gaugeArcBg_${p.id}" opacity="0.5"/>
+          <path d="${arcPath(60, 68, 50, -210, 30)}" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" id="gaugeArc_${p.id}"
+            stroke-dasharray="0 1000" style="transition: stroke-dasharray 0.4s ease, stroke 0.3s"/>
+          <!-- Needle dot -->
+          <circle cx="60" cy="68" r="5" fill="#0f1822" stroke="var(--accent2)" stroke-width="1.5" id="gaugeNeedle_${p.id}"/>
+          <circle cx="60" cy="68" r="2" fill="var(--accent)" id="gaugeNeedleInner_${p.id}"/>
+        </svg>
+      </div>
+      <div class="gauge-value-big" id="gaugeVal_${p.id}">—</div>
+      <div class="gauge-unit">${p.unit}</div>
+      <div class="gauge-label">${p.name}</div>
+      <div class="gauge-range">
+        <span>${p.min}</span>
+        <span>${p.max}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function arcPath(cx, cy, r, startDeg, endDeg) {
+  const s = polarToXY(cx, cy, r, startDeg);
+  const e = polarToXY(cx, cy, r, endDeg);
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 1 1 ${e.x} ${e.y}`;
+}
+
+function polarToXY(cx, cy, r, deg) {
+  const rad = (deg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function updateGauge(pid, value) {
+  const arcEl = document.getElementById(`gaugeArc_${pid.id}`);
+  const valEl = document.getElementById(`gaugeVal_${pid.id}`);
+  const cellEl = document.getElementById(`gaugeCell_${pid.id}`);
+  if (!arcEl || !valEl) return;
+
+  const pct = Math.max(0, Math.min(1, (value - pid.min) / (pid.max - pid.min)));
+  // Arc total length ≈ 240° of circle
+  const totalLen = 2 * Math.PI * 50 * (240 / 360);
+  const dashLen = pct * totalLen;
+  arcEl.style.strokeDasharray = `${dashLen} ${totalLen}`;
+
+  // Color by warn/crit
+  let cls = '';
+  let color = 'var(--accent)';
+  if (pid.critHi && value >= pid.critHi) { cls = 'crit'; color = 'var(--red)'; }
+  else if (pid.warnHi && value >= pid.warnHi) { cls = 'warn'; color = 'var(--orange)'; }
+  else if (pid.critLo && value <= pid.critLo) { cls = 'crit'; color = 'var(--red)'; }
+  else if (pid.warnLo && value <= pid.warnLo) { cls = 'warn'; color = 'var(--orange)'; }
+
+  arcEl.style.stroke = color;
+  valEl.textContent = value;
+  valEl.className = 'gauge-value-big ' + cls;
+  cellEl.className = 'gauge-cell ' + (cls || 'active-gauge');
+}
+
+function renderDataGrid() {
+  const el = document.getElementById('dataGrid');
+  el.innerHTML = PIDS.filter(p => !p.gauge).map(p => `
+    <div class="data-card" id="dc_${p.id}">
+      <div class="dc-header">
+        <div class="dc-name">${p.name}</div>
+        <div class="dc-pid">${p.mode === 'AT' ? 'AT' : p.mode+p.pid}</div>
+      </div>
+      <div>
+        <span class="dc-value" id="dcVal_${p.id}">—</span>
+        <span class="dc-unit">${p.unit}</span>
+      </div>
+      <div class="dc-bar-wrap">
+        <div class="dc-bar" id="dcBar_${p.id}" style="width:0%"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateDataCard(pid, value) {
+  const valEl = document.getElementById(`dcVal_${pid.id}`);
+  const barEl = document.getElementById(`dcBar_${pid.id}`);
+  if (!valEl) return;
+
+  valEl.textContent = value;
+
+  let cls = '';
+  let barCls = '';
+  if (pid.min !== undefined && pid.max !== undefined) {
+    const pct = Math.max(0, Math.min(100, (value - pid.min) / (pid.max - pid.min) * 100));
+    if (barEl) {
+      barEl.style.width = pct + '%';
+      if (pid.critHi && value >= pid.critHi) { cls = 'crit'; barCls = 'dc-bar crit'; }
+      else if (pid.warnHi && value >= pid.warnHi) { cls = 'warn'; barCls = 'dc-bar warn'; }
+      else if (pid.critLo && value <= pid.critLo) { cls = 'crit'; barCls = 'dc-bar crit'; }
+      else if (pid.warnLo && value <= pid.warnLo) { cls = 'warn'; barCls = 'dc-bar warn'; }
+      else { barCls = 'dc-bar good'; }
+      barEl.className = barCls;
+    }
+  }
+  valEl.className = 'dc-value ' + cls;
+}
+
+// ══════════════════════════════════════════════
+//  LOG
+// ══════════════════════════════════════════════
+function log(type, msg) {
+  const body = document.getElementById('termBody');
+  const time = new Date().toLocaleTimeString('tr-TR', { hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit', fractionalSecondDigits:2 });
+  const typeClass = { tx:'log-type-tx', rx:'log-type-rx', err:'log-type-err', info:'log-type-info' }[type] || '';
+  const typeLabel = { tx:'>> TX', rx:'<< RX', err:'!! ERR', info:'-- INF' }[type] || type;
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-time">${time}</span><span class="${typeClass}">${typeLabel}</span><span class="log-msg">${msg}</span>`;
+  body.prepend(line);
+  if (body.children.length > 100) body.removeChild(body.lastChild);
+}
+
+function clearLog() { document.getElementById('termBody').innerHTML = ''; }
+
+// ══════════════════════════════════════════════
+//  ANDROID / PLATFORM DETECTION
+// ══════════════════════════════════════════════
+const isAndroid = /Android/i.test(navigator.userAgent);
+const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const isFile = location.protocol === 'file:';
+
+function checkPlatform() {
+  if (isAndroid || isMobile) {
+    document.getElementById('androidWarn').style.display = 'block';
+    document.getElementById('pwaHint').style.display = 'block';
+    // Serial desteklenmiyor Android'de
+    document.getElementById('opt-serial').style.opacity = '0.35';
+    document.getElementById('opt-serial').style.pointerEvents = 'none';
+    document.getElementById('opt-serial').querySelector('.conn-option-desc').textContent = 'Android desteklemiyor';
+    log('info', `Platform: Android Chrome tespit edildi`);
+  }
+  if (isFile || !isHTTPS) {
+    document.getElementById('httpsWarn').style.display = 'block';
+    log('err', 'HTTPS değil — Bluetooth çalışmayabilir (file:// protokolü)');
+  }
+  // Daha önce izin verilen BT cihazı var mı kontrol et
+  checkLastDevice();
+}
+
+async function checkLastDevice() {
+  if (!navigator.bluetooth) return;
+  try {
+    // Chrome 85+ getDevices() — daha önce izin verilen cihazları listeler
+    const devices = await navigator.bluetooth.getDevices();
+    if (devices && devices.length > 0) {
+      const lastDev = devices[devices.length - 1];
+      const btn = document.getElementById('reconnectBtn');
+      btn.style.display = 'block';
+      btn.textContent = `♻️ TEKRAR BAĞLAN: ${lastDev.name || 'OBD2 Adaptör'}`;
+      btn._device = lastDev;
+      log('info', `Önceki cihaz bulundu: ${lastDev.name || 'Bilinmiyor'}`);
+    }
+  } catch(e) { /* getDevices() desteklenmiyor */ }
+}
+
+async function reconnectLastDevice() {
+  const btn = document.getElementById('reconnectBtn');
+  if (!btn._device) return;
+  hideModal();
+  setConnUI('connecting');
+  log('info', `Yeniden bağlanılıyor: ${btn._device.name || 'OBD2'}...`);
+  try {
+    const device = btn._device;
+    // watchAdvertisements ile cihaz yakında mı bekle
+    state.btDevice = device;
+    device.addEventListener('advertisementreceived', async () => {
+      try {
+        await connectToGATT(device);
+      } catch(e) { log('err', e.message); }
+    });
+    await device.watchAdvertisements({ signal: AbortSignal.timeout(8000) });
+  } catch(e) {
+    // watchAdvertisements yoksa direkt bağlanmayı dene
+    try {
+      await connectToGATT(btn._device);
+    } catch(e2) {
+      setConnUI('error');
+      log('err', 'Yeniden bağlanma başarısız: ' + e2.message);
+      showModal();
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
+//  CONNECTION HELPERS
+// ══════════════════════════════════════════════
+let connType = 'bt';
+function selectConn(t) {
+  if (t === 'serial' && (isAndroid || isMobile)) { showNotify('❌ Android\'de USB Serial desteklenmez', 3000); return; }
+  connType = t;
+  document.getElementById('opt-bt').classList.toggle('selected', t === 'bt');
+  document.getElementById('opt-serial').classList.toggle('selected', t === 'serial');
+}
+
+function showModal() { document.getElementById('modal').classList.remove('hidden'); }
+function hideModal() { document.getElementById('modal').classList.add('hidden'); }
+
+function setConnUI(status) {
+  const dot = document.getElementById('connDot');
+  const txt = document.getElementById('connText');
+  const btnConn = document.getElementById('btnConnect');
+  const btnDisc = document.getElementById('btnDisconnect');
+  dot.className = 'conn-dot ' + status;
+  if (status === 'connected') {
+    txt.textContent = 'BAĞLI';
+    btnConn.classList.add('hidden');
+    btnDisc.classList.remove('hidden');
+  } else if (status === 'connecting') {
+    txt.textContent = 'BAĞLANIYOR...';
+  } else {
+    txt.textContent = 'BAĞLI DEĞİL';
+    btnConn.classList.remove('hidden');
+    btnDisc.classList.add('hidden');
+  }
+}
+
+async function connectDevice() {
+  hideModal();
+  if (connType === 'bt') {
+    await connectBluetooth();
+  } else {
+    await connectSerial();
+  }
+}
+  if (!navigator.bluetooth) {
+    showNotify('❌ Web Bluetooth desteklenmiyor. Chrome/Edge kullanın.', 4000);
+    log('err', 'Web Bluetooth bu tarayıcıda desteklenmiyor');
+    return;
+  }
+  if (isFile) {
+    showNotify('⚠️ Bluetooth için HTTPS gerekli! Demo modunu deneyin.', 5000);
+    log('err', 'file:// protokolünde Bluetooth çalışmaz — HTTPS gerekli');
+    return;
+  }
+  setConnUI('connecting');
+  log('info', 'Bluetooth OBD2 cihazı aranıyor...');
+  log('info', 'Android: Konum izni gerekebilir, lütfen izin verin');
+  try {
+    // Çin ELM327 klonlarının kullandığı tüm yaygın BLE servis UUID'leri
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [
+        { namePrefix: 'OBD' },
+        { namePrefix: 'ELM' },
+        { namePrefix: 'OBDII' },
+        { namePrefix: 'Vgate' },
+        { namePrefix: 'VEEPEAK' },
+        { namePrefix: 'KONNWEI' },
+        { namePrefix: 'Car' },
+        { namePrefix: 'BLE' },
+        // Yaygın çin adaptörlerinin isimleri
+        { name: 'IOS-Vlink' },
+        { name: 'OBDBLE' },
+      ],
+      optionalServices: [
+        // BLE UART (en yaygın çin ELM327)
+        '0000fff0-0000-1000-8000-00805f9b34fb',
+        // Vgate iCar Pro
+        'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+        // VEEPEAK BLE
+        '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+        // Genericn NRF51
+        '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+        // BLE Serial (legacy)
+        '00001101-0000-1000-8000-00805f9b34fb',
+      ]
+    });
+    log('info', `Cihaz seçildi: ${device.name || 'Bilinmiyor'}`);
+    await connectToGATT(device);
+  } catch (e) {
+    if (e.name === 'NotFoundError') {
+      setConnUI('');
+      log('info', 'Cihaz seçimi iptal edildi');
+    } else {
+      setConnUI('error');
+      log('err', e.message);
+      showNotify('❌ Bluetooth hatası: ' + e.message, 5000);
+    }
+  }
+}
+
+async function connectToGATT(device) {
+  state.btDevice = device;
+  device.addEventListener('gattserverdisconnected', onBTDisconnected);
+  const server = await device.gatt.connect();
+  log('rx', `GATT bağlandı → ${device.name}`);
+
+  const serviceUUIDs = [
+    '0000fff0-0000-1000-8000-00805f9b34fb',
+    'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+    '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+    '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+  ];
+
+  let service = null;
+  for (const uuid of serviceUUIDs) {
+    try { service = await server.getPrimaryService(uuid); log('info', `Servis bulundu: ${uuid.substring(0,8)}...`); break; } catch(e) {}
+  }
+  // Hiçbiri bulunamazsa tüm servisleri tara
+  if (!service) {
+    const services = await server.getPrimaryServices();
+    if (services.length > 0) { service = services[0]; log('info', `Servis otomatik: ${service.uuid.substring(0,8)}...`); }
+  }
+  if (!service) throw new Error('Uyumlu BLE servisi bulunamadı');
+
+  const chars = await service.getCharacteristics();
+  let charTx = null, charRx = null;
+  for (const c of chars) {
+    if ((c.properties.notify || c.properties.indicate) && !charRx) charRx = c;
+    if ((c.properties.writeWithoutResponse || c.properties.write) && !charTx) charTx = c;
+  }
+  if (!charTx || !charRx) throw new Error(`TX/RX karakteristiği bulunamadı (${chars.length} char mevcut)`);
+
+  state.btCharTx = charTx;
+  state.btCharRx = charRx;
+  state.mode = 'bt';
+
+  await charRx.startNotifications();
+  charRx.addEventListener('characteristicvaluechanged', handleBTData);
+  log('info', `TX: ${charTx.uuid.substring(0,8)} | RX: ${charRx.uuid.substring(0,8)}`);
+
+  await initELM();
+  setConnUI('connected');
+  state.connected = true;
+  startPolling();
+}
+
+function onBTDisconnected() {
+  if (!state.connected) return;
+  log('err', 'Bluetooth bağlantısı kesildi — yeniden bağlanılıyor...');
+  showNotify('⚠️ BT bağlantısı kesildi, yeniden bağlanılıyor...', 3000);
+  setConnUI('connecting');
+  // Otomatik yeniden bağlan
+  setTimeout(async () => {
+    if (state.btDevice) {
+      try {
+        await connectToGATT(state.btDevice);
+        showNotify('✅ Yeniden bağlandı!', 2000);
+      } catch(e) {
+        setConnUI('error');
+        log('err', 'Yeniden bağlanma başarısız: ' + e.message);
+        showNotify('❌ Yeniden bağlanma başarısız', 3000);
+      }
+    }
+  }, 2000);
+}
+
+// ── SERIAL ──
+async function connectSerial() {
+  if (!navigator.serial) {
+    showNotify('❌ Web Serial API desteklenmiyor. Chrome / Edge kullanın.', 4000);
+    log('err', 'Web Serial API bu tarayıcıda desteklenmiyor');
+    return;
+  }
+  setConnUI('connecting');
+  log('info', 'Serial port seçiliyor...');
+  try {
+    state.port = await navigator.serial.requestPort();
+    const baud = parseInt(document.getElementById('baudRate').value);
+    await state.port.open({ baudRate: baud });
+    log('info', `Serial port açıldı @ ${baud} baud`);
+    state.writer = state.port.writable.getWriter();
+    state.mode = 'serial';
+    state.connected = true;
+    readSerialLoop();
+    await initELM();
+    setConnUI('connected');
+    startPolling();
+  } catch (e) {
+    setConnUI('error');
+    log('err', e.message);
+    showNotify('❌ Serial bağlantısı başarısız: ' + e.message, 5000);
+  }
+}
+
+// ── ELM327 INIT ──
+let responseBuffer = '';
+let responseResolve = null;
+let responseTimeout = null;
+
+async function sendELM(cmd, timeoutMs = 2000) {
+  const command = cmd + '\r';
+  log('tx', cmd);
+  if (state.mode === 'bt' && state.btCharTx) {
+    const data = new TextEncoder().encode(command);
+    await state.btCharTx.writeValue(data);
+  } else if (state.mode === 'serial' && state.writer) {
+    await state.writer.write(new TextEncoder().encode(command));
+  } else if (state.mode === 'demo') {
+    return simulateELM(cmd);
+  }
+  return await waitForResponse(timeoutMs);
+}
+
+function waitForResponse(ms) {
+  return new Promise((resolve) => {
+    responseResolve = resolve;
+    responseTimeout = setTimeout(() => {
+      responseResolve = null;
+      resolve('TIMEOUT');
+    }, ms);
+  });
+}
+
+function handleBTData(event) {
+  const val = new TextDecoder().decode(event.target.value);
+  handleRawData(val);
+}
+
+async function readSerialLoop() {
+  const reader = state.port.readable.getReader();
+  state.reader = reader;
+  const decoder = new TextDecoder();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      handleRawData(decoder.decode(value));
+    }
+  } catch (e) { /* disconnected */ }
+}
+
+function handleRawData(raw) {
+  responseBuffer += raw;
+  if (responseBuffer.includes('>')) {
+    const resp = responseBuffer.replace(/\r?\n/g, ' ').replace(/>/g, '').trim();
+    responseBuffer = '';
+    log('rx', resp);
+    if (responseResolve) {
+      clearTimeout(responseTimeout);
+      const fn = responseResolve;
+      responseResolve = null;
+      fn(resp);
+    }
+  }
+}
+
+async function initELM() {
+  log('info', 'ELM327 başlatılıyor...');
+  await sendELM('ATZ', 3000);
+  await sendELM('ATE0'); // echo off
+  await sendELM('ATL0'); // linefeed off
+  await sendELM('ATS0'); // spaces off
+  await sendELM('ATH0'); // headers off
+  const sp = await sendELM('ATSP0'); // auto protocol
+  log('info', 'Protokol otomatik seçildi: ' + sp);
+  const rv = await sendELM('ATRV');
+  if (!rv.includes('TIMEOUT')) {
+    document.getElementById('voltageVal').textContent = rv.trim();
+    document.getElementById('elmVer').textContent = 'v1.5';
+    log('info', `Batarya voltajı: ${rv.trim()}`);
+  }
+  const vin = await sendELM('0902');
+  if (!vin.includes('NO DATA') && !vin.includes('TIMEOUT') && vin.length > 4) {
+    const vinStr = hexToAscii(vin.replace(/49 02 ../g,'').replace(/\s/g,''));
+    document.getElementById('vinVal').textContent = vinStr.substring(0,17) || '—';
+  }
+}
+
+function hexToAscii(hex) {
+  let str = '';
+  for (let i = 0; i < hex.length; i += 2) {
+    const c = parseInt(hex.substr(i, 2), 16);
+    if (c > 31 && c < 127) str += String.fromCharCode(c);
+  }
+  return str;
+}
+
+// ══════════════════════════════════════════════
+//  POLLING
+// ══════════════════════════════════════════════
+let pollQueue = [];
+let polling = false;
+
+function startPolling() {
+  if (polling) return;
+  polling = true;
+  pollQueue = PIDS.filter(p => p.mode !== 'AT' && p.mode !== 'CLIP');
+  state.hzInterval = setInterval(updateHz, 2000);
+  pollNext();
+}
+
+async function pollNext() {
+  if (!state.connected && !state.demo) return;
+  if (pollQueue.length === 0) {
+    pollQueue = PIDS.filter(p => p.mode !== 'AT' && p.mode !== 'CLIP');
+  }
+
+  const pid = pollQueue.shift();
+  const cmd = pid.mode + pid.pid;
+  let resp;
+
+  if (state.demo) {
+    resp = simulateELM(cmd);
+  } else {
+    resp = await sendELM(cmd, 1500);
+  }
+
+  if (resp && !resp.includes('NO DATA') && !resp.includes('TIMEOUT') && !resp.includes('ERROR')) {
+    const parsed = parseOBDResponse(resp, pid);
+    if (parsed !== null) {
+      state.values[pid.id] = parsed;
+      updateDisplay(pid, parsed);
+      state.refreshCount++;
+    }
+  }
+
+  if (state.connected || state.demo) {
+    setTimeout(pollNext, state.demo ? 100 : 50);
+  }
+}
+
+function parseOBDResponse(resp, pid) {
+  try {
+    const clean = resp.replace(/[^0-9A-Fa-f\s]/g, '').trim();
+    const bytes = clean.split(/\s+/).map(b => parseInt(b, 16));
+    // Skip mode+pid bytes (first 2)
+    const data = bytes.slice(2).filter(b => !isNaN(b));
+    if (data.length === 0) return null;
+    return pid.formula ? pid.formula(data) : data[0];
+  } catch (e) { return null; }
+}
+
+function updateDisplay(pid, value) {
+  if (pid.gauge) updateGauge(pid, value);
+  else updateDataCard(pid, value);
+}
+
+function updateHz() {
+  const now = Date.now();
+  const elapsed = (now - state.lastRefreshTime) / 1000;
+  const hz = (state.refreshCount / elapsed).toFixed(1);
+  document.getElementById('refreshHz').textContent = hz + ' Hz';
+  state.refreshCount = 0;
+  state.lastRefreshTime = now;
+}
+
+// ══════════════════════════════════════════════
+//  DEMO MODE SIMULATOR — H4M Engine
+// ══════════════════════════════════════════════
+let demoTick = 0;
+let demoRPM = 800;
+let demoSpeed = 0;
+let demoThrottle = 0;
+
+function simulateELM(cmd) {
+  demoTick++;
+  const t = demoTick * 0.1;
+
+  // Simulate driving cycle
+  if (demoTick % 300 < 50) { demoThrottle = 0.05; }
+  else if (demoTick % 300 < 150) { demoThrottle = 0.6 + Math.random() * 0.2; }
+  else if (demoTick % 300 < 200) { demoThrottle = 0.3; }
+  else if (demoTick % 300 < 280) { demoThrottle = 0.1; }
+  else { demoThrottle = 0.05; }
+
+  demoRPM = 750 + demoThrottle * 5500 + Math.random() * 80;
+  demoSpeed = Math.max(0, demoSpeed + (demoThrottle * 3 - 1.5) + Math.random() * 2 - 1);
+  demoSpeed = Math.min(180, demoSpeed);
+
+  const rpm = Math.round(demoRPM);
+  const speed = Math.round(demoSpeed);
+  const coolant = 85 + Math.sin(t * 0.01) * 8;
+  const load = Math.round(demoThrottle * 95 + 5);
+  const tps = Math.round(demoThrottle * 255);
+  const map = Math.round(50 + demoThrottle * 150 + Math.random() * 10);
+  const maf = Math.round((10 + demoThrottle * 200) * 100);
+  const iat = Math.round(30 + Math.random() * 5 + 40); // 0-255 encoding
+  const timing = Math.round((demoThrottle * 20 + 5) * 2 + 128); // encoded
+  const o2 = Math.round(0.45 * 200 + Math.random() * 30);
+  const stft = Math.round(128 + (Math.random() * 10 - 5));
+  const ltft = Math.round(128 + (Math.random() * 6 - 3));
+  const fuel = Math.round(60 + demoThrottle * 150);
+  const baro = 101;
+  const oilTmp = Math.round(demoTick < 200 ? 40 + demoTick * 0.3 : 90 + Math.random() * 15 + 40);
+  const voltage = Math.round((13.8 + Math.random() * 0.4) * 10);
+
+  const responses = {
+    '010C': `41 0C ${(rpm*4 >> 8) & 0xFF} ${(rpm*4) & 0xFF}`,
+    '010D': `41 0D ${speed}`,
+    '0105': `41 05 ${coolant + 40}`,
+    '0104': `41 04 ${Math.round(load * 255 / 100)}`,
+    '010F': `41 0F ${iat}`,
+    '0111': `41 11 ${tps}`,
+    '010B': `41 0B ${map}`,
+    '0110': `41 10 ${(maf >> 8) & 0xFF} ${maf & 0xFF}`,
+    '010E': `41 0E ${timing}`,
+    '011F': `41 1F ${Math.floor(demoTick / 10) >> 8} ${Math.floor(demoTick / 10) & 0xFF}`,
+    '0106': `41 06 ${stft}`,
+    '0107': `41 07 ${ltft}`,
+    '012F': `41 2F ${Math.round(0.65 * 255)}`,
+    '0103': `41 03 02 00`,
+    '010A': `41 0A ${Math.round(350 / 3)}`,
+    '015E': `41 5E ${(fuel >> 8) & 0xFF} ${fuel & 0xFF}`,
+    '0114': `41 14 ${o2} FF`,
+    '0115': `41 15 ${Math.round(0.55 * 200)} FF`,
+    '0133': `41 33 ${baro}`,
+    '015C': `41 5C ${Math.round(oilTmp)+40}`,
+    '0146': `41 46 ${25 + 40}`,
+    '0132': `41 32 80 00`,
+    '013C': `41 3C ${Math.round((450+40)*10 >> 8)} ${Math.round((450+40)*10 & 0xFF)}`,
+    '014A': `41 4A ${tps}`,
+    '014B': `41 4B ${Math.round(tps * 0.95)}`,
+    '0144': `41 44 80 00`,
+    '0149': `41 49 ${tps}`,
+    '0101': `41 01 00 00 00 00`,
+  };
+
+  return responses[cmd] || 'NO DATA';
+}
+
+// ══════════════════════════════════════════════
+//  DTC
+// ══════════════════════════════════════════════
+const DEMO_DTCS = []; // empty for demo = no faults
+
+async function readDTC() {
+  log('info', 'DTC okunuyor (Mode 03)...');
+
+  let dtcs = [];
+  if (state.demo) {
+    dtcs = DEMO_DTCS;
+    log('rx', dtcs.length === 0 ? '43 00' : '43 ' + dtcs.map(d=>d.code).join(' '));
+    showNotify(dtcs.length === 0 ? '✅ Arıza kodu bulunamadı' : `🔴 ${dtcs.length} arıza kodu`, 3000);
+  } else {
+    const resp = await sendELM('03', 3000);
+    if (resp.includes('NO DATA') || resp.includes('TIMEOUT')) {
+      dtcs = [];
+    } else {
+      dtcs = parseDTCResponse(resp);
+    }
+  }
+
+  document.getElementById('dtcCount').textContent = dtcs.length;
+  document.getElementById('dtcCount').className = 'dtc-count-num' + (dtcs.length > 0 ? ' has-errors' : '');
+
+  const list = document.getElementById('dtcList');
+  if (dtcs.length === 0) {
+    list.innerHTML = `<div style="font-size:11px;color:var(--green);text-align:center;padding:12px">✅ Arıza kodu yok</div>`;
+  } else {
+    list.innerHTML = dtcs.map(d => `
+      <div class="dtc-code">
+        <div class="dtc-code-num">${d.code}</div>
+        <div class="dtc-code-desc">${d.desc || 'Tanımsız Arıza'}</div>
+      </div>
+    `).join('');
+  }
+}
+
+function parseDTCResponse(resp) {
+  const bytes = resp.trim().split(/\s+/).map(b => parseInt(b, 16)).filter(b => !isNaN(b));
+  const dtcs = [];
+  for (let i = 1; i < bytes.length - 1; i += 2) {
+    const b1 = bytes[i], b2 = bytes[i + 1];
+    if (b1 === 0 && b2 === 0) continue;
+    const type = ['P','C','B','U'][(b1 >> 6) & 0x3];
+    const code = type + ('000' + ((b1 & 0x3F) * 256 + b2).toString(16).toUpperCase()).slice(-4);
+    dtcs.push({ code, desc: getDTCDesc(code) });
+  }
+  return dtcs;
+}
+
+function getDTCDesc(code) {
+  const map = {
+    'P0100': 'MAF Devre Arızası',
+    'P0105': 'MAP Sensörü Devre Arızası',
+    'P0110': 'Emme Havası Sıcaklığı Sensörü',
+    'P0115': 'Soğutma Suyu Sıcaklığı Sensörü',
+    'P0120': 'TPS A Devre Arızası',
+    'P0130': 'O2 Sensör B1S1 Devresi',
+    'P0171': 'Sistem Yalın (Banka 1)',
+    'P0172': 'Sistem Zengin (Banka 1)',
+    'P0300': 'Rastgele Ateşleme Kaçırma',
+    'P0301': 'Silindir 1 Ateşleme Kaçırma',
+    'P0302': 'Silindir 2 Ateşleme Kaçırma',
+    'P0303': 'Silindir 3 Ateşleme Kaçırma',
+    'P0304': 'Silindir 4 Ateşleme Kaçırma',
+    'P0340': 'Krank Konum Sensörü',
+    'P0400': 'EGR Akış Arızası',
+    'P0440': 'EVAP Emisyon Kontrol Sistemi',
+    'P0500': 'Araç Hız Sensörü',
+  };
+  return map[code] || 'Bkz. Renault CLIP';
+}
+
+async function clearDTC() {
+  if (!confirm('Tüm arıza kodları silinsin mi?')) return;
+  log('tx', '04 (DTC Temizle)');
+  if (state.demo) {
+    log('rx', '44');
+    showNotify('✅ Arıza kodları silindi', 2500);
+    document.getElementById('dtcCount').textContent = '0';
+    document.getElementById('dtcCount').className = 'dtc-count-num';
+    document.getElementById('dtcList').innerHTML = `<div style="font-size:11px;color:var(--green);text-align:center;padding:12px">✅ Arıza kodu yok</div>`;
+  } else {
+    await sendELM('04', 2000);
+    await readDTC();
+  }
+}
+
+// ══════════════════════════════════════════════
+//  DEMO START
+// ══════════════════════════════════════════════
+function startDemo() {
+  hideModal();
+  state.demo = true;
+  state.connected = true;
+  state.mode = 'demo';
+  setConnUI('connected');
+  document.getElementById('elmVersion').textContent = 'ELM327 DEMO';
+  document.getElementById('voltageVal').textContent = '14.2V';
+  document.getElementById('elmVer').textContent = 'DEMO';
+  document.getElementById('vinVal').textContent = 'VF1BM1B0H56...';
+  document.getElementById('protocolShort').textContent = 'CAN';
+  log('info', 'DEMO MODU aktif — H4M motor simülasyonu çalışıyor');
+  log('info', 'ATZ → ELM327 v1.5a');
+  log('info', 'ATSP0 → SEARCHING... OK');
+  log('rx', '41 00 BF FF B9 93');
+  showNotify('🚗 Demo modu başlatıldı — Renault Megane H4M', 3000);
+  state.hzInterval = setInterval(updateHz, 2000);
+  pollNext();
+}
+
+// ══════════════════════════════════════════════
+//  DISCONNECT
+// ══════════════════════════════════════════════
+async function disconnect() {
+  state.connected = false;
+  state.demo = false;
+  polling = false;
+  clearInterval(state.hzInterval);
+  if (state.reader) { try { await state.reader.cancel(); } catch(e){} }
+  if (state.writer) { try { await state.writer.close(); } catch(e){} }
+  if (state.port) { try { await state.port.close(); } catch(e){} }
+  if (state.btDevice?.gatt?.connected) state.btDevice.gatt.disconnect();
+  setConnUI('');
+  document.getElementById('refreshHz').textContent = '0 Hz';
+  log('info', 'Bağlantı kesildi');
+  showNotify('🔌 Bağlantı kesildi', 2000);
+}
+
+// ══════════════════════════════════════════════
+//  NOTIFY
+// ══════════════════════════════════════════════
+let notifyTimer = null;
+function showNotify(msg, duration = 3000) {
+  const el = document.getElementById('notify');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(notifyTimer);
+  notifyTimer = setTimeout(() => el.classList.add('hidden'), duration);
+}
+
+// ══════════════════════════════════════════════
+//  TAB SWITCHING
+// ══════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach((el, i) => {
+    el.classList.toggle('active', ['live','dtc','freeze','info'][i] === tab);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════
+initUI();
+checkPlatform();
+log('info', 'Renault CLIP OBD2 Dashboard hazır');
+log('info', 'Desteklenen: Megane 2015 | H4M 1.6 16V | Benezinli');
+log('info', 'Bağlanmak için BAĞLAN butonuna basın veya Demo Modu seçin');
+</script>
+</body>
+</html>
