@@ -1538,35 +1538,19 @@ async function connectBluetooth() {
     return;
   }
   setConnUI('connecting');
-  log('info', 'Bluetooth OBD2 cihazı aranıyor...');
-  log('info', 'Android: Konum izni gerekebilir, lütfen izin verin');
+  log('info', 'Tüm Bluetooth cihazları listeleniyor...');
+  log('info', 'Listeden OBD2 adaptörünüzü seçin');
   try {
-    // Çin ELM327 klonlarının kullandığı tüm yaygın BLE servis UUID'leri
+    // acceptAllDevices: true → yakındaki HER cihazı göster, kullanıcı seçsin
     const device = await navigator.bluetooth.requestDevice({
-      filters: [
-        { namePrefix: 'OBD' },
-        { namePrefix: 'ELM' },
-        { namePrefix: 'OBDII' },
-        { namePrefix: 'Vgate' },
-        { namePrefix: 'VEEPEAK' },
-        { namePrefix: 'KONNWEI' },
-        { namePrefix: 'Car' },
-        { namePrefix: 'BLE' },
-        // Yaygın çin adaptörlerinin isimleri
-        { name: 'IOS-Vlink' },
-        { name: 'OBDBLE' },
-      ],
+      acceptAllDevices: true,
       optionalServices: [
-        // BLE UART (en yaygın çin ELM327)
         '0000fff0-0000-1000-8000-00805f9b34fb',
-        // Vgate iCar Pro
         'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
-        // VEEPEAK BLE
         '49535343-fe7d-4ae5-8fa9-9fafd205e455',
-        // Genericn NRF51
         '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
-        // BLE Serial (legacy)
         '00001101-0000-1000-8000-00805f9b34fb',
+        'be781648-5a2b-4e63-bfc7-2d0964970957',
       ]
     });
     log('info', `Cihaz seçildi: ${device.name || 'Bilinmiyor'}`);
@@ -1594,18 +1578,32 @@ async function connectToGATT(device) {
     'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
     '49535343-fe7d-4ae5-8fa9-9fafd205e455',
     '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+    'be781648-5a2b-4e63-bfc7-2d0964970957',
   ];
 
   let service = null;
+  // Önce bilinen UUID'leri dene
   for (const uuid of serviceUUIDs) {
     try { service = await server.getPrimaryService(uuid); log('info', `Servis bulundu: ${uuid.substring(0,8)}...`); break; } catch(e) {}
   }
-  // Hiçbiri bulunamazsa tüm servisleri tara
+  // Bulunamazsa tüm servisleri tara, en büyük karakteristikli olanı seç
   if (!service) {
-    const services = await server.getPrimaryServices();
-    if (services.length > 0) { service = services[0]; log('info', `Servis otomatik: ${service.uuid.substring(0,8)}...`); }
+    log('info', 'Bilinen servis bulunamadı, tüm servisler taranıyor...');
+    try {
+      const allServices = await server.getPrimaryServices();
+      log('info', `${allServices.length} servis bulundu`);
+      // En fazla karakteristiğe sahip servisi seç (genelde UART servisi budur)
+      let maxChars = 0;
+      for (const svc of allServices) {
+        try {
+          const chars = await svc.getCharacteristics();
+          log('info', `Servis ${svc.uuid.substring(0,8)}: ${chars.length} karakteristik`);
+          if (chars.length > maxChars) { maxChars = chars.length; service = svc; }
+        } catch(e) {}
+      }
+    } catch(e) { log('err', 'Servis taraması başarısız: ' + e.message); }
   }
-  if (!service) throw new Error('Uyumlu BLE servisi bulunamadı');
+  if (!service) throw new Error('Hiçbir BLE servisi bulunamadı. Adaptör BLE desteklemiyor olabilir (klasik BT ise çalışmaz).');
 
   const chars = await service.getCharacteristics();
   let charTx = null, charRx = null;
