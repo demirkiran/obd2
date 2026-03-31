@@ -927,10 +927,56 @@
     to { transform: translateX(0); opacity: 1; }
   }
 
+  /* ── UPC PANEL ── */
+  .upc-panel { display: flex; flex-direction: column; gap: 6px; }
+
+  .upc-fault-item {
+    background: rgba(255,128,32,0.08);
+    border: 1px solid rgba(255,128,32,0.25);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .upc-fault-code {
+    font-size: 12px;
+    color: var(--orange);
+    font-weight: 600;
+  }
+
+  .upc-fault-desc {
+    font-size: 10px;
+    color: var(--dim);
+    margin-top: 2px;
+  }
+
+  .upc-fault-status {
+    font-size: 9px;
+    color: var(--dimmer);
+    margin-top: 2px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .upc-badge {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 9px;
+    font-family: 'Orbitron', monospace;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+
+  .upc-badge-active { background: rgba(255,48,64,0.2); color: var(--red); border: 1px solid rgba(255,48,64,0.3); }
+  .upc-badge-stored { background: rgba(255,128,32,0.15); color: var(--orange); border: 1px solid rgba(255,128,32,0.3); }
+  .upc-badge-pending { background: rgba(0,200,255,0.12); color: var(--accent); border: 1px solid rgba(0,200,255,0.25); }
+
   .blink-cursor::after {
     content: '_';
     animation: blink 1s infinite;
   }
+
 
   .vehicle-info {
     background: var(--bg);
@@ -1017,33 +1063,14 @@
       ♻️ SON BAĞLANAN OBD2 CİHAZINA BAĞLAN
     </button>
 
-    <div class="conn-options">
-      <div class="conn-option selected" id="opt-bt" onclick="selectConn('bt')">
-        <div class="conn-option-icon">📡</div>
-        <div class="conn-option-title">BLUETOOTH</div>
-        <div class="conn-option-desc">BLE ELM327<br>Android & PC Chrome</div>
-      </div>
-      <div class="conn-option" id="opt-serial" onclick="selectConn('serial')">
-        <div class="conn-option-icon">🔌</div>
-        <div class="conn-option-title">SERIAL/USB</div>
-        <div class="conn-option-desc">USB ELM327<br>Sadece PC Chrome/Edge</div>
-      </div>
-    </div>
-
-    <select class="baud-select" id="baudRate">
-      <option value="9600">9600 baud (ELM327 varsayılan)</option>
-      <option value="38400" selected>38400 baud (önerilen)</option>
-      <option value="57600">57600 baud</option>
-      <option value="115200">115200 baud</option>
-    </select>
-
-    <div class="demo-notice">
-      ⚡ OBD2 cihazınız yoksa <strong>Demo Modu</strong> ile tüm arayüzü test edebilirsiniz. Renault H4M motor PID simülasyonu içerir.
+    <div style="text-align:center;padding:16px 0 20px">
+      <div style="font-size:40px;margin-bottom:8px">📡</div>
+      <div style="font-family:'Orbitron',monospace;font-size:13px;color:var(--white);margin-bottom:4px">BLUETOOTH ELM327</div>
+      <div style="font-size:11px;color:var(--dim)">BLE OBD2 adaptörünüzü seçin<br>Android Chrome & PC Chrome/Edge</div>
     </div>
 
     <div class="modal-btns">
       <button class="btn btn-primary" onclick="connectDevice()">BAĞLAN</button>
-      <button class="btn btn-secondary" onclick="startDemo()">DEMO MODU</button>
     </div>
 
     <div class="pwa-hint" id="pwaHint">
@@ -1167,6 +1194,22 @@
       <div class="freeze-row"><span class="freeze-key">Yük %</span><span class="freeze-val">—</span></div>
       <div class="freeze-row"><span class="freeze-key">Soğutma °C</span><span class="freeze-val">—</span></div>
     </div>
+
+    <div class="section-title" style="margin-top:8px">UPC — ÜNİTE HATA OKUMA</div>
+    <div class="upc-panel">
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <button class="btn btn-secondary" style="flex:1;font-size:9px;padding:6px" onclick="readUPCFaults()">OKU</button>
+        <button class="btn btn-danger" style="flex:1;font-size:9px;padding:6px" onclick="clearUPCFaults()">SIFIRLA</button>
+      </div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:6px;line-height:1.5">
+        UPC: Güç Kontrol Ünitesi<br>
+        Mode 19 / SID 1A (Renault CAN)
+      </div>
+      <div id="upcStatus" style="font-size:11px;color:var(--dim);text-align:center;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:4px">
+        UPC okumak için butona basın
+      </div>
+      <div class="upc-fault-list" id="upcFaultList"></div>
+    </div>
   </div>
 
 </div>
@@ -1227,18 +1270,12 @@ const PIDS = [
 // ══════════════════════════════════════════════
 let state = {
   connected: false,
-  mode: null, // 'bt', 'serial', 'demo'
+  mode: null, // 'bt'
   activeCat: 'engine',
-  connType: 'bt',
-  port: null,
   btDevice: null,
   btCharTx: null,
   btCharRx: null,
-  reader: null,
-  writer: null,
   values: {},
-  demo: false,
-  demoInterval: null,
   refreshCount: 0,
   lastRefreshTime: Date.now(),
   hzInterval: null,
@@ -1425,10 +1462,6 @@ function checkPlatform() {
   if (isAndroid || isMobile) {
     document.getElementById('androidWarn').style.display = 'block';
     document.getElementById('pwaHint').style.display = 'block';
-    // Serial desteklenmiyor Android'de
-    document.getElementById('opt-serial').style.opacity = '0.35';
-    document.getElementById('opt-serial').style.pointerEvents = 'none';
-    document.getElementById('opt-serial').querySelector('.conn-option-desc').textContent = 'Android desteklemiyor';
     log('info', `Platform: Android Chrome tespit edildi`);
   }
   if (isFile || !isHTTPS) {
@@ -1483,17 +1516,6 @@ async function reconnectLastDevice() {
   }
 }
 
-// ══════════════════════════════════════════════
-//  CONNECTION HELPERS
-// ══════════════════════════════════════════════
-let connType = 'bt';
-function selectConn(t) {
-  if (t === 'serial' && (isAndroid || isMobile)) { showNotify('❌ Android\'de USB Serial desteklenmez', 3000); return; }
-  connType = t;
-  document.getElementById('opt-bt').classList.toggle('selected', t === 'bt');
-  document.getElementById('opt-serial').classList.toggle('selected', t === 'serial');
-}
-
 function showModal() { document.getElementById('modal').classList.remove('hidden'); }
 function hideModal() { document.getElementById('modal').classList.add('hidden'); }
 
@@ -1518,11 +1540,7 @@ function setConnUI(status) {
 
 async function connectDevice() {
   hideModal();
-  if (connType === 'bt') {
-    await connectBluetooth();
-  } else {
-    await connectSerial();
-  }
+  await connectBluetooth();
 }
 
 // ── BLUETOOTH ──
@@ -1647,34 +1665,6 @@ function onBTDisconnected() {
   }, 2000);
 }
 
-// ── SERIAL ──
-async function connectSerial() {
-  if (!navigator.serial) {
-    showNotify('❌ Web Serial API desteklenmiyor. Chrome / Edge kullanın.', 4000);
-    log('err', 'Web Serial API bu tarayıcıda desteklenmiyor');
-    return;
-  }
-  setConnUI('connecting');
-  log('info', 'Serial port seçiliyor...');
-  try {
-    state.port = await navigator.serial.requestPort();
-    const baud = parseInt(document.getElementById('baudRate').value);
-    await state.port.open({ baudRate: baud });
-    log('info', `Serial port açıldı @ ${baud} baud`);
-    state.writer = state.port.writable.getWriter();
-    state.mode = 'serial';
-    state.connected = true;
-    readSerialLoop();
-    await initELM();
-    setConnUI('connected');
-    startPolling();
-  } catch (e) {
-    setConnUI('error');
-    log('err', e.message);
-    showNotify('❌ Serial bağlantısı başarısız: ' + e.message, 5000);
-  }
-}
-
 // ── ELM327 INIT ──
 let responseBuffer = '';
 let responseResolve = null;
@@ -1686,10 +1676,6 @@ async function sendELM(cmd, timeoutMs = 2000) {
   if (state.mode === 'bt' && state.btCharTx) {
     const data = new TextEncoder().encode(command);
     await state.btCharTx.writeValue(data);
-  } else if (state.mode === 'serial' && state.writer) {
-    await state.writer.write(new TextEncoder().encode(command));
-  } else if (state.mode === 'demo') {
-    return simulateELM(cmd);
   }
   return await waitForResponse(timeoutMs);
 }
@@ -1707,19 +1693,6 @@ function waitForResponse(ms) {
 function handleBTData(event) {
   const val = new TextDecoder().decode(event.target.value);
   handleRawData(val);
-}
-
-async function readSerialLoop() {
-  const reader = state.port.readable.getReader();
-  state.reader = reader;
-  const decoder = new TextDecoder();
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      handleRawData(decoder.decode(value));
-    }
-  } catch (e) { /* disconnected */ }
 }
 
 function handleRawData(raw) {
@@ -1783,20 +1756,14 @@ function startPolling() {
 }
 
 async function pollNext() {
-  if (!state.connected && !state.demo) return;
+  if (!state.connected) return;
   if (pollQueue.length === 0) {
     pollQueue = PIDS.filter(p => p.mode !== 'AT' && p.mode !== 'CLIP');
   }
 
   const pid = pollQueue.shift();
   const cmd = pid.mode + pid.pid;
-  let resp;
-
-  if (state.demo) {
-    resp = simulateELM(cmd);
-  } else {
-    resp = await sendELM(cmd, 1500);
-  }
+  const resp = await sendELM(cmd, 1500);
 
   if (resp && !resp.includes('NO DATA') && !resp.includes('TIMEOUT') && !resp.includes('ERROR')) {
     const parsed = parseOBDResponse(resp, pid);
@@ -1807,8 +1774,8 @@ async function pollNext() {
     }
   }
 
-  if (state.connected || state.demo) {
-    setTimeout(pollNext, state.demo ? 100 : 50);
+  if (state.connected) {
+    setTimeout(pollNext, 50);
   }
 }
 
@@ -1838,99 +1805,18 @@ function updateHz() {
 }
 
 // ══════════════════════════════════════════════
-//  DEMO MODE SIMULATOR — H4M Engine
-// ══════════════════════════════════════════════
-let demoTick = 0;
-let demoRPM = 800;
-let demoSpeed = 0;
-let demoThrottle = 0;
-
-function simulateELM(cmd) {
-  demoTick++;
-  const t = demoTick * 0.1;
-
-  // Simulate driving cycle
-  if (demoTick % 300 < 50) { demoThrottle = 0.05; }
-  else if (demoTick % 300 < 150) { demoThrottle = 0.6 + Math.random() * 0.2; }
-  else if (demoTick % 300 < 200) { demoThrottle = 0.3; }
-  else if (demoTick % 300 < 280) { demoThrottle = 0.1; }
-  else { demoThrottle = 0.05; }
-
-  demoRPM = 750 + demoThrottle * 5500 + Math.random() * 80;
-  demoSpeed = Math.max(0, demoSpeed + (demoThrottle * 3 - 1.5) + Math.random() * 2 - 1);
-  demoSpeed = Math.min(180, demoSpeed);
-
-  const rpm = Math.round(demoRPM);
-  const speed = Math.round(demoSpeed);
-  const coolant = 85 + Math.sin(t * 0.01) * 8;
-  const load = Math.round(demoThrottle * 95 + 5);
-  const tps = Math.round(demoThrottle * 255);
-  const map = Math.round(50 + demoThrottle * 150 + Math.random() * 10);
-  const maf = Math.round((10 + demoThrottle * 200) * 100);
-  const iat = Math.round(30 + Math.random() * 5 + 40); // 0-255 encoding
-  const timing = Math.round((demoThrottle * 20 + 5) * 2 + 128); // encoded
-  const o2 = Math.round(0.45 * 200 + Math.random() * 30);
-  const stft = Math.round(128 + (Math.random() * 10 - 5));
-  const ltft = Math.round(128 + (Math.random() * 6 - 3));
-  const fuel = Math.round(60 + demoThrottle * 150);
-  const baro = 101;
-  const oilTmp = Math.round(demoTick < 200 ? 40 + demoTick * 0.3 : 90 + Math.random() * 15 + 40);
-  const voltage = Math.round((13.8 + Math.random() * 0.4) * 10);
-
-  const responses = {
-    '010C': `41 0C ${(rpm*4 >> 8) & 0xFF} ${(rpm*4) & 0xFF}`,
-    '010D': `41 0D ${speed}`,
-    '0105': `41 05 ${coolant + 40}`,
-    '0104': `41 04 ${Math.round(load * 255 / 100)}`,
-    '010F': `41 0F ${iat}`,
-    '0111': `41 11 ${tps}`,
-    '010B': `41 0B ${map}`,
-    '0110': `41 10 ${(maf >> 8) & 0xFF} ${maf & 0xFF}`,
-    '010E': `41 0E ${timing}`,
-    '011F': `41 1F ${Math.floor(demoTick / 10) >> 8} ${Math.floor(demoTick / 10) & 0xFF}`,
-    '0106': `41 06 ${stft}`,
-    '0107': `41 07 ${ltft}`,
-    '012F': `41 2F ${Math.round(0.65 * 255)}`,
-    '0103': `41 03 02 00`,
-    '010A': `41 0A ${Math.round(350 / 3)}`,
-    '015E': `41 5E ${(fuel >> 8) & 0xFF} ${fuel & 0xFF}`,
-    '0114': `41 14 ${o2} FF`,
-    '0115': `41 15 ${Math.round(0.55 * 200)} FF`,
-    '0133': `41 33 ${baro}`,
-    '015C': `41 5C ${Math.round(oilTmp)+40}`,
-    '0146': `41 46 ${25 + 40}`,
-    '0132': `41 32 80 00`,
-    '013C': `41 3C ${Math.round((450+40)*10 >> 8)} ${Math.round((450+40)*10 & 0xFF)}`,
-    '014A': `41 4A ${tps}`,
-    '014B': `41 4B ${Math.round(tps * 0.95)}`,
-    '0144': `41 44 80 00`,
-    '0149': `41 49 ${tps}`,
-    '0101': `41 01 00 00 00 00`,
-  };
-
-  return responses[cmd] || 'NO DATA';
-}
-
-// ══════════════════════════════════════════════
 //  DTC
 // ══════════════════════════════════════════════
-const DEMO_DTCS = []; // empty for demo = no faults
-
 async function readDTC() {
+  if (!state.connected) { showNotify('❌ Önce OBD2 cihazına bağlanın', 3000); return; }
   log('info', 'DTC okunuyor (Mode 03)...');
 
+  const resp = await sendELM('03', 3000);
   let dtcs = [];
-  if (state.demo) {
-    dtcs = DEMO_DTCS;
-    log('rx', dtcs.length === 0 ? '43 00' : '43 ' + dtcs.map(d=>d.code).join(' '));
-    showNotify(dtcs.length === 0 ? '✅ Arıza kodu bulunamadı' : `🔴 ${dtcs.length} arıza kodu`, 3000);
+  if (resp.includes('NO DATA') || resp.includes('TIMEOUT')) {
+    dtcs = [];
   } else {
-    const resp = await sendELM('03', 3000);
-    if (resp.includes('NO DATA') || resp.includes('TIMEOUT')) {
-      dtcs = [];
-    } else {
-      dtcs = parseDTCResponse(resp);
-    }
+    dtcs = parseDTCResponse(resp);
   }
 
   document.getElementById('dtcCount').textContent = dtcs.length;
@@ -1939,6 +1825,7 @@ async function readDTC() {
   const list = document.getElementById('dtcList');
   if (dtcs.length === 0) {
     list.innerHTML = `<div style="font-size:11px;color:var(--green);text-align:center;padding:12px">✅ Arıza kodu yok</div>`;
+    showNotify('✅ Arıza kodu bulunamadı', 3000);
   } else {
     list.innerHTML = dtcs.map(d => `
       <div class="dtc-code">
@@ -1946,6 +1833,7 @@ async function readDTC() {
         <div class="dtc-code-desc">${d.desc || 'Tanımsız Arıza'}</div>
       </div>
     `).join('');
+    showNotify(`🔴 ${dtcs.length} arıza kodu bulundu`, 3000);
   }
 }
 
@@ -1986,41 +1874,264 @@ function getDTCDesc(code) {
 }
 
 async function clearDTC() {
+  if (!state.connected) { showNotify('❌ Önce OBD2 cihazına bağlanın', 3000); return; }
   if (!confirm('Tüm arıza kodları silinsin mi?')) return;
   log('tx', '04 (DTC Temizle)');
-  if (state.demo) {
-    log('rx', '44');
-    showNotify('✅ Arıza kodları silindi', 2500);
-    document.getElementById('dtcCount').textContent = '0';
-    document.getElementById('dtcCount').className = 'dtc-count-num';
-    document.getElementById('dtcList').innerHTML = `<div style="font-size:11px;color:var(--green);text-align:center;padding:12px">✅ Arıza kodu yok</div>`;
-  } else {
-    await sendELM('04', 2000);
-    await readDTC();
-  }
+  await sendELM('04', 2000);
+  await readDTC();
 }
 
 // ══════════════════════════════════════════════
-//  DEMO START
+//  UPC — UNIT FAULT READ / CLEAR (Renault)
 // ══════════════════════════════════════════════
-function startDemo() {
-  hideModal();
-  state.demo = true;
-  state.connected = true;
-  state.mode = 'demo';
-  setConnUI('connected');
-  document.getElementById('elmVersion').textContent = 'ELM327 DEMO';
-  document.getElementById('voltageVal').textContent = '14.2V';
-  document.getElementById('elmVer').textContent = 'DEMO';
-  document.getElementById('vinVal').textContent = 'VF1BM1B0H56...';
-  document.getElementById('protocolShort').textContent = 'CAN';
-  log('info', 'DEMO MODU aktif — H4M motor simülasyonu çalışıyor');
-  log('info', 'ATZ → ELM327 v1.5a');
-  log('info', 'ATSP0 → SEARCHING... OK');
-  log('rx', '41 00 BF FF B9 93');
-  showNotify('🚗 Demo modu başlatıldı — Renault Megane H4M', 3000);
-  state.hzInterval = setInterval(updateHz, 2000);
-  pollNext();
+// Renault UPC (Unité de Protection et de Contrôle / BCM power unit)
+// Erişim: OBD Mode 19 (ISO 14229 ReadDTCInformation) veya
+//         Renault proprietary service 1A (ReadDataByLocalIdentifier)
+// ELM327 üzerinden: ATSH ile CAN header ayarlanır, ardından servis komutu gönderilir.
+//
+// UPC için bilinen Renault CAN adres: 0x745 (request) / 0x7CD (response) [Megane3/4 BSI]
+// Alternatif: 0x7A1 / 0x7A9 (bazı versiyonlarda)
+// Mode 19 01 FF → tüm DTC'leri oku (ISO 14229)
+// Mode 14 FF FF FF → tüm DTC'leri sil
+
+const UPC_HEADERS = [
+  { req: '745', resp: '7CD', name: 'BSI/UPC (Megane 2015)' },
+  { req: '7A1', resp: '7A9', name: 'BCM Alt (fallback)' },
+  { req: '726', resp: '72E', name: 'UCH (Habitacle Ünitesi)' },
+];
+
+let upcActiveHeader = null;
+
+// UPC DTC açıklama tablosu (Renault spesifik kodlar)
+const UPC_DTC_MAP = {
+  'U0100': 'Motor ECU ile CAN iletişimi yok',
+  'U0101': 'TCM ile CAN iletişimi yok',
+  'U0121': 'ABS/ESP ile CAN iletişimi yok',
+  'U0155': 'Gösterge paneli ile CAN iletişimi yok',
+  'U1000': 'CAN veri yolu arızası',
+  'U1001': 'CAN verisi eksik — motor',
+  'B1000': 'BSI dahili arızası',
+  'B1001': 'Sigorta arızası (UPC)',
+  'B1010': 'Güç kaynağı aşırı gerilim',
+  'B1011': 'Güç kaynağı düşük gerilim',
+  'B1020': 'Akü yönetim hatası',
+  'B1021': 'Şarj devresi açık',
+  'B1030': 'Kontak anahtarı sinyal arızası',
+  'B1040': 'Kapı kilidi kontrol arızası',
+  'B1050': 'Cam silecek rölesi arızası',
+  'B1060': 'Klima kompresörü kontrol hatası',
+  'B1070': 'Ön cam ısıtıcı devre arızası',
+  'B1080': 'Aydınlatma kontrol modülü',
+  'B1090': 'Immobilizer iletişim hatası',
+  'B2000': 'Güvenlik sistemi arızası',
+  'B2001': 'Alarm sensörü arızası',
+  'P0560': 'Sistem voltajı aralık dışı',
+  'P0562': 'Sistem voltajı düşük',
+  'P0563': 'Sistem voltajı yüksek',
+  'P0600': 'Seri iletişim hatası',
+  'P0604': 'RAM hatası — kontrol modülü',
+  'P0605': 'ROM hatası — kontrol modülü',
+  'P0606': 'PCM / ECM işlemci arızası',
+};
+
+function getUPCDesc(code) {
+  return UPC_DTC_MAP[code] || 'Renault servis verileri gerekli';
+}
+
+async function upcSetHeader(headerHex) {
+  // ATSH: CAN header ayarla (11-bit için 3 hex karakter)
+  const resp = await sendELM(`ATSH${headerHex}`, 1000);
+  return !resp.includes('ERROR');
+}
+
+async function upcSend(hexCmd, timeoutMs = 2000) {
+  // ATFCSH + ATFCSM1 → flow control ayarla (çok-çerçeveli yanıtlar için)
+  const fcResp = await sendELM(`ATFCSH${upcActiveHeader?.req || '745'}`, 800);
+  await sendELM('ATFCSM1', 800);
+  return await sendELM(hexCmd, timeoutMs);
+}
+
+function parseUDSDTC(raw) {
+  // ISO 14229 / Mode 19 yanıtı: 59 01 FF [DTC1_H DTC1_L DTC1_STATUS] ...
+  const bytes = raw.replace(/[^0-9A-Fa-f\s]/g,'').trim()
+    .split(/\s+/).map(b => parseInt(b, 16)).filter(b => !isNaN(b));
+
+  const dtcs = [];
+  // Mode 59 yanıtı: byte[0]=59, byte[1]=01, byte[2]=FF/statusMask, sonra 3'er byte DTC
+  let start = 0;
+  // Yanıt 59 01 ile başlıyorsa
+  if (bytes[0] === 0x59) start = 3;
+  // Yanıt 7F ise negatif yanıt
+  if (bytes[0] === 0x7F) return null;
+
+  for (let i = start; i + 2 < bytes.length; i += 3) {
+    const b1 = bytes[i], b2 = bytes[i+1], statusByte = bytes[i+2];
+    if (b1 === 0 && b2 === 0) continue;
+    const type = ['P','C','B','U'][(b1 >> 6) & 0x3];
+    const code = type + ('000' + (((b1 & 0x3F) << 8) | b2).toString(16).toUpperCase()).slice(-4);
+    let statusStr = '';
+    if (statusByte & 0x01) statusStr = 'active';
+    else if (statusByte & 0x08) statusStr = 'pending';
+    else statusStr = 'stored';
+    dtcs.push({ code, status: statusStr, desc: getUPCDesc(code) });
+  }
+  return dtcs;
+}
+
+async function readUPCFaults() {
+  if (!state.connected) { showNotify('❌ Önce OBD2 cihazına bağlanın', 3000); return; }
+
+  const statusEl = document.getElementById('upcStatus');
+  const listEl = document.getElementById('upcFaultList');
+  statusEl.style.color = 'var(--accent)';
+  statusEl.textContent = '⏳ UPC adresi deneniyor...';
+  listEl.innerHTML = '';
+
+  log('info', 'UPC okuma başlıyor — CAN header taranıyor...');
+
+  // Önce orijinal protokol ayarlarını kaydet, headers'ı aç
+  await sendELM('ATH1', 1000); // headers ON — yanıtın hangi adresten geldiğini görmek için
+
+  let found = false;
+  let allDTCs = [];
+
+  for (const hdr of UPC_HEADERS) {
+    log('info', `Header deneniyor: ${hdr.req} (${hdr.name})`);
+    statusEl.textContent = `⏳ ${hdr.name} deneniyor...`;
+
+    const setOk = await upcSetHeader(hdr.req);
+    if (!setOk) continue;
+
+    upcActiveHeader = hdr;
+
+    // ISO 14229 Service 19 01 FF → reportNumberOfDTCByStatusMask (tüm DTC'ler)
+    const resp = await sendELM('1901FF', 2500);
+
+    if (resp.includes('NO DATA') || resp.includes('TIMEOUT') || resp.includes('ERROR') || resp.includes('7F')) {
+      log('info', `${hdr.req}: Yanıt yok`);
+      continue;
+    }
+
+    log('rx', `UPC (${hdr.req}): ${resp}`);
+
+    // Yanıt geldi — şimdi DTC listesini oku: Service 19 02 FF
+    const dtcResp = await sendELM('1902FF', 3000);
+    log('rx', `DTC listesi: ${dtcResp}`);
+
+    if (!dtcResp.includes('TIMEOUT') && !dtcResp.includes('NO DATA')) {
+      const parsed = parseUDSDTC(dtcResp);
+      if (parsed !== null) {
+        allDTCs = parsed;
+        found = true;
+        log('info', `UPC bulundu: ${hdr.name} — ${parsed.length} hata`);
+        break;
+      }
+    }
+  }
+
+  // Header'ı sıfırla ve headers OFF
+  await sendELM('ATSH7DF', 500);
+  await sendELM('ATH0', 500);
+  upcActiveHeader = null;
+
+  if (!found) {
+    // Fallback: Mode 03 (standard OBD) ile dene ama sadece B/U kodlarını filtrele
+    log('info', 'UPC özel adres bulunamadı — standart Mode 03 ile deneniyor...');
+    const fallbackResp = await sendELM('03', 3000);
+    if (!fallbackResp.includes('NO DATA') && !fallbackResp.includes('TIMEOUT')) {
+      const stdDTCs = parseDTCResponse(fallbackResp).filter(d => d.code.startsWith('B') || d.code.startsWith('U'));
+      if (stdDTCs.length > 0) {
+        allDTCs = stdDTCs.map(d => ({ ...d, status: 'stored' }));
+        found = true;
+        log('info', `Standart Mode 03: ${stdDTCs.length} B/U kodu bulundu`);
+      }
+    }
+  }
+
+  // Sonuçları göster
+  if (!found || allDTCs.length === 0) {
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = '✅ UPC hatası bulunamadı';
+    showNotify('✅ UPC hatası yok', 3000);
+  } else {
+    statusEl.style.color = 'var(--orange)';
+    statusEl.textContent = `⚠️ ${allDTCs.length} UPC hatası bulundu`;
+    showNotify(`⚠️ ${allDTCs.length} UPC hatası`, 3000);
+    listEl.innerHTML = allDTCs.map(d => `
+      <div class="upc-fault-item">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span class="upc-fault-code">${d.code}</span>
+          <span class="upc-badge ${
+            d.status === 'active' ? 'upc-badge-active' :
+            d.status === 'pending' ? 'upc-badge-pending' : 'upc-badge-stored'
+          }">${d.status === 'active' ? 'AKTİF' : d.status === 'pending' ? 'BEKLEMEDE' : 'KAYITLI'}</span>
+        </div>
+        <div class="upc-fault-desc">${d.desc}</div>
+      </div>
+    `).join('');
+  }
+}
+
+async function clearUPCFaults() {
+  if (!state.connected) { showNotify('❌ Önce OBD2 cihazına bağlanın', 3000); return; }
+  if (!confirm('UPC hataları sıfırlansın mı?\nBu işlem geri alınamaz.')) return;
+
+  const statusEl = document.getElementById('upcStatus');
+  statusEl.style.color = 'var(--accent)';
+  statusEl.textContent = '⏳ UPC sıfırlanıyor...';
+
+  log('info', 'UPC hata sıfırlama başlıyor...');
+
+  let cleared = false;
+
+  // 1) UDS Service 14 FF FF FF (ISO 14229 ClearDiagnosticInformation)
+  for (const hdr of UPC_HEADERS) {
+    const setOk = await upcSetHeader(hdr.req);
+    if (!setOk) continue;
+
+    await sendELM('ATFCSM1', 500);
+    const resp = await sendELM('14FFFFFF', 3000);
+    log('rx', `UPC clear (${hdr.req}): ${resp}`);
+
+    // Pozitif yanıt: 54 (0x14+0x40)
+    if (resp && !resp.includes('NO DATA') && !resp.includes('TIMEOUT') && !resp.includes('ERROR')) {
+      const bytes = resp.trim().split(/\s+/).map(b => parseInt(b, 16));
+      if (bytes.includes(0x54) || bytes[0] === 0x54) {
+        cleared = true;
+        log('info', `UPC sıfırlandı: ${hdr.name}`);
+        break;
+      }
+    }
+  }
+
+  // 2) Fallback: standart OBD Mode 04
+  if (!cleared) {
+    log('info', 'Standart Mode 04 ile sıfırlanıyor...');
+    await sendELM('ATSH7DF', 500);
+    const resp04 = await sendELM('04', 2000);
+    log('rx', `Mode 04: ${resp04}`);
+    if (!resp04.includes('NO DATA') && !resp04.includes('TIMEOUT')) {
+      cleared = true;
+    }
+  }
+
+  await sendELM('ATSH7DF', 500);
+  await sendELM('ATH0', 500);
+  upcActiveHeader = null;
+
+  if (cleared) {
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = '✅ UPC hataları sıfırlandı';
+    document.getElementById('upcFaultList').innerHTML = '';
+    showNotify('✅ UPC hataları başarıyla sıfırlandı', 3000);
+    log('info', 'UPC sıfırlama tamamlandı');
+    // Doğrulama için tekrar oku
+    setTimeout(() => readUPCFaults(), 1500);
+  } else {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '❌ Sıfırlama başarısız — bağlantıyı kontrol edin';
+    showNotify('❌ UPC sıfırlama başarısız', 4000);
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -2028,12 +2139,9 @@ function startDemo() {
 // ══════════════════════════════════════════════
 async function disconnect() {
   state.connected = false;
-  state.demo = false;
+  state.mode = null;
   polling = false;
   clearInterval(state.hzInterval);
-  if (state.reader) { try { await state.reader.cancel(); } catch(e){} }
-  if (state.writer) { try { await state.writer.close(); } catch(e){} }
-  if (state.port) { try { await state.port.close(); } catch(e){} }
   if (state.btDevice?.gatt?.connected) state.btDevice.gatt.disconnect();
   setConnUI('');
   document.getElementById('refreshHz').textContent = '0 Hz';
@@ -2068,8 +2176,8 @@ function switchTab(tab) {
 initUI();
 checkPlatform();
 log('info', 'Renault CLIP OBD2 Dashboard hazır');
-log('info', 'Desteklenen: Megane 2015 | H4M 1.6 16V | Benezinli');
-log('info', 'Bağlanmak için BAĞLAN butonuna basın veya Demo Modu seçin');
+log('info', 'Desteklenen: Megane 2015 | H4M 1.6 16V | Benzinli');
+log('info', 'Bağlanmak için BAĞLAN butonuna basın');
 </script>
 </body>
 </html>
