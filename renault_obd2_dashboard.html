@@ -1054,8 +1054,9 @@
     <!-- Android bilgi -->
     <div class="android-warn" id="androidWarn">
       📱 <strong>Android Chrome tespit edildi.</strong><br>
-      USB/Serial desteklenmez. Yalnızca <strong>Bluetooth ELM327</strong> kullanabilirsiniz.<br>
-      Konum izni gerekebilir (BT taraması için Android şartı).
+      Yalnızca <strong>BLE (Bluetooth Low Energy) ELM327</strong> desteklenir.<br>
+      Klasik Bluetooth (BT 2.0) adaptörler <strong>çalışmaz</strong>.<br>
+      Adaptörünüzün kutusunda <em>"BLE"</em> veya <em>"Bluetooth 4.0+"</em> yazmalıdır.
     </div>
 
     <!-- Önceki cihaza yeniden bağlan -->
@@ -1066,7 +1067,11 @@
     <div style="text-align:center;padding:16px 0 20px">
       <div style="font-size:40px;margin-bottom:8px">📡</div>
       <div style="font-family:'Orbitron',monospace;font-size:13px;color:var(--white);margin-bottom:4px">BLUETOOTH ELM327</div>
-      <div style="font-size:11px;color:var(--dim)">BLE OBD2 adaptörünüzü seçin<br>Android Chrome & PC Chrome/Edge</div>
+      <div style="font-size:11px;color:var(--dim);line-height:1.6">
+        BLE OBD2 adaptörünüzü seçin<br>
+        <span style="color:var(--accent)">1. deneme:</span> sadece OBD2 cihazları listelenir<br>
+        <span style="color:var(--dim)">2. deneme:</span> tüm BT cihazları (adaptörü siz seçin)
+      </div>
     </div>
 
     <div class="modal-btns">
@@ -1544,92 +1549,167 @@ async function connectDevice() {
 }
 
 // ── BLUETOOTH ──
+// Bilinen tüm ELM327/OBD2 BLE servis UUID'leri
+// Android Chrome'da acceptAllDevices+optionalServices çalışmaz düzgün,
+// bu yüzden namePrefix filters + optionalServices birlikte kullanılır.
+const OBD_SERVICE_UUIDS = [
+  '0000fff0-0000-1000-8000-00805f9b34fb', // Vgate iCar, generic ELM327
+  '0000ffe0-0000-1000-8000-00805f9b34fb', // Generic BLE UART (HM-10 tabanlı)
+  'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Vgate iCar Pro BLE
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Microchip RN4020 / ISSC
+  '6e400001-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART (nRF)
+  'be781648-5a2b-4e63-bfc7-2d0964970957', // OBDLink BLE
+  'fff0',       // short UUID — bazı adaptörler
+  'ffe0',       // short UUID — HM-10 tabanlı
+  '18f0',       // bazı Çin üretimi adaptörler
+];
+
+// OBD2 adaptörlerinin yaygın isim önekleri
+const OBD_NAME_PREFIXES = [
+  'OBD', 'ELM', 'OBDII', 'vLinker', 'Vgate', 'iCar',
+  'KONNWEI', 'TONWON', 'VEEPEAK', 'LELink', 'CarScan',
+  'BAFX', 'PLX', 'OBDLink', 'Carista', 'FIXD',
+  'V-LINK', 'BLE_ELM', 'BLE_OBD', 'ECUscan', 'EOBD',
+];
+
 async function connectBluetooth() {
   if (!navigator.bluetooth) {
     showNotify('❌ Web Bluetooth desteklenmiyor. Chrome/Edge kullanın.', 4000);
     log('err', 'Web Bluetooth bu tarayıcıda desteklenmiyor');
+    showModal();
     return;
   }
   if (isFile) {
-    showNotify('⚠️ Bluetooth için HTTPS gerekli! Demo modunu deneyin.', 5000);
+    showNotify('⚠️ Bluetooth için HTTPS gerekli!', 5000);
     log('err', 'file:// protokolünde Bluetooth çalışmaz — HTTPS gerekli');
+    showModal();
     return;
   }
+
   setConnUI('connecting');
-  log('info', 'Tüm Bluetooth cihazları listeleniyor...');
-  log('info', 'Listeden OBD2 adaptörünüzü seçin');
+  log('info', 'OBD2 adaptörü aranıyor...');
+
+  // Strateji 1: namePrefix filtresi ile sadece OBD2 cihazlarını göster
+  // Android Chrome'da bu yöntem OBD2 dışı cihazları listeden çıkarır
+  const filters = OBD_NAME_PREFIXES.map(p => ({ namePrefix: p }));
+
+  let device = null;
+
   try {
-    // acceptAllDevices: true → yakındaki HER cihazı göster, kullanıcı seçsin
-    const device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: [
-        '0000fff0-0000-1000-8000-00805f9b34fb',
-        'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
-        '49535343-fe7d-4ae5-8fa9-9fafd205e455',
-        '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
-        '00001101-0000-1000-8000-00805f9b34fb',
-        'be781648-5a2b-4e63-bfc7-2d0964970957',
-      ]
+    log('info', 'Strateji 1: OBD2 isim filtresiyle taranıyor...');
+    device = await navigator.bluetooth.requestDevice({
+      filters,
+      optionalServices: OBD_SERVICE_UUIDS,
     });
-    log('info', `Cihaz seçildi: ${device.name || 'Bilinmiyor'}`);
-    await connectToGATT(device);
-  } catch (e) {
-    if (e.name === 'NotFoundError') {
-      setConnUI('');
-      log('info', 'Cihaz seçimi iptal edildi');
+  } catch (e1) {
+    if (e1.name === 'NotFoundError') {
+      // Kullanıcı iptal etti veya eşleşen cihaz yok → Strateji 2
+      log('info', 'İsim filtresiyle eşleşme yok. Tüm cihazlar listeleniyor...');
+      log('info', '⚠️ Listede OBD2 adaptörünüzü seçin (diğer cihazları seçmeyin)');
+      try {
+        device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: OBD_SERVICE_UUIDS,
+        });
+      } catch (e2) {
+        if (e2.name === 'NotFoundError') {
+          setConnUI('');
+          log('info', 'Cihaz seçimi iptal edildi');
+        } else {
+          setConnUI('error');
+          log('err', e2.message);
+          showNotify('❌ Bluetooth hatası: ' + e2.message, 5000);
+        }
+        return;
+      }
     } else {
       setConnUI('error');
-      log('err', e.message);
-      showNotify('❌ Bluetooth hatası: ' + e.message, 5000);
+      log('err', e1.message);
+      showNotify('❌ Bluetooth hatası: ' + e1.message, 5000);
+      return;
     }
+  }
+
+  if (!device) { setConnUI(''); return; }
+  log('info', `Cihaz seçildi: "${device.name || 'İsimsiz'}" — GATT bağlantısı kuruluyor...`);
+  try {
+    await connectToGATT(device);
+  } catch(e) {
+    setConnUI('error');
+    log('err', 'GATT hatası: ' + e.message);
+    showNotify('❌ ' + e.message, 6000);
   }
 }
 
 async function connectToGATT(device) {
   state.btDevice = device;
   device.addEventListener('gattserverdisconnected', onBTDisconnected);
-  const server = await device.gatt.connect();
-  log('rx', `GATT bağlandı → ${device.name}`);
 
-  const serviceUUIDs = [
-    '0000fff0-0000-1000-8000-00805f9b34fb',
-    'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
-    '49535343-fe7d-4ae5-8fa9-9fafd205e455',
-    '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
-    'be781648-5a2b-4e63-bfc7-2d0964970957',
-  ];
+  log('info', 'GATT sunucusuna bağlanılıyor...');
+  const server = await device.gatt.connect();
+  log('rx', `GATT bağlandı → "${device.name || 'İsimsiz'}"`);
 
   let service = null;
-  // Önce bilinen UUID'leri dene
-  for (const uuid of serviceUUIDs) {
-    try { service = await server.getPrimaryService(uuid); log('info', `Servis bulundu: ${uuid.substring(0,8)}...`); break; } catch(e) {}
+
+  // 1) Bilinen UUID'leri tek tek dene
+  for (const uuid of OBD_SERVICE_UUIDS) {
+    try {
+      service = await server.getPrimaryService(uuid);
+      log('info', `✅ Servis bulundu: ${uuid.length > 8 ? uuid.substring(0,8)+'...' : uuid}`);
+      break;
+    } catch(e) {}
   }
-  // Bulunamazsa tüm servisleri tara, en büyük karakteristikli olanı seç
+
+  // 2) Bulunamazsa tüm servisleri tara
   if (!service) {
-    log('info', 'Bilinen servis bulunamadı, tüm servisler taranıyor...');
+    log('info', 'Bilinen UUID yok — tüm servisler taranıyor...');
     try {
       const allServices = await server.getPrimaryServices();
-      log('info', `${allServices.length} servis bulundu`);
-      // En fazla karakteristiğe sahip servisi seç (genelde UART servisi budur)
-      let maxChars = 0;
+      log('info', `${allServices.length} servis bulundu:`);
+
+      // Tüm servisleri ve karakteristiklerini logla, TX+RX özelliği olanı seç
+      let bestService = null;
+      let bestScore = 0;
       for (const svc of allServices) {
         try {
           const chars = await svc.getCharacteristics();
-          log('info', `Servis ${svc.uuid.substring(0,8)}: ${chars.length} karakteristik`);
-          if (chars.length > maxChars) { maxChars = chars.length; service = svc; }
+          let hasTx = chars.some(c => c.properties.write || c.properties.writeWithoutResponse);
+          let hasRx = chars.some(c => c.properties.notify || c.properties.indicate);
+          const score = (hasTx ? 2 : 0) + (hasRx ? 2 : 0) + chars.length;
+          log('info', `  ${svc.uuid.substring(0,8)}… → ${chars.length} char | TX:${hasTx} RX:${hasRx}`);
+          if (score > bestScore) { bestScore = score; bestService = svc; }
         } catch(e) {}
       }
-    } catch(e) { log('err', 'Servis taraması başarısız: ' + e.message); }
+      service = bestService;
+    } catch(e) {
+      log('err', 'Servis taraması başarısız: ' + e.message);
+    }
   }
-  if (!service) throw new Error('Hiçbir BLE servisi bulunamadı. Adaptör BLE desteklemiyor olabilir (klasik BT ise çalışmaz).');
+
+  if (!service) throw new Error('BLE UART servisi bulunamadı. Bu adaptör klasik Bluetooth (BT2.0) kullanıyor olabilir — BLE destekli adaptör gereklidir.');
 
   const chars = await service.getCharacteristics();
+  log('info', `Servis karakteristikleri (${chars.length}):`);
+
   let charTx = null, charRx = null;
   for (const c of chars) {
+    const props = Object.keys(c.properties).filter(k => c.properties[k]).join(', ');
+    log('info', `  ${c.uuid.substring(0,8)}… → [${props}]`);
+    // RX: notify veya indicate özelliğine sahip ilk karakteristik
     if ((c.properties.notify || c.properties.indicate) && !charRx) charRx = c;
+    // TX: write veya writeWithoutResponse özelliğine sahip ilk karakteristik
     if ((c.properties.writeWithoutResponse || c.properties.write) && !charTx) charTx = c;
   }
-  if (!charTx || !charRx) throw new Error(`TX/RX karakteristiği bulunamadı (${chars.length} char mevcut)`);
+
+  if (!charTx || !charRx) {
+    // Son çare: notify olan tek karakteristik varsa hem TX hem RX olarak dene
+    if (!charTx && charRx && (charRx.properties.write || charRx.properties.writeWithoutResponse)) {
+      charTx = charRx;
+    }
+    if (!charTx || !charRx) {
+      throw new Error(`TX/RX karakteristiği bulunamadı (${chars.length} char var, adaptör ELM327 BLE olmayabilir)`);
+    }
+  }
 
   state.btCharTx = charTx;
   state.btCharRx = charRx;
@@ -1637,7 +1717,8 @@ async function connectToGATT(device) {
 
   await charRx.startNotifications();
   charRx.addEventListener('characteristicvaluechanged', handleBTData);
-  log('info', `TX: ${charTx.uuid.substring(0,8)} | RX: ${charRx.uuid.substring(0,8)}`);
+  log('info', `TX UUID: ${charTx.uuid.substring(0,8)}…`);
+  log('info', `RX UUID: ${charRx.uuid.substring(0,8)}…`);
 
   await initELM();
   setConnUI('connected');
