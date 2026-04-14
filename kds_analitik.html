@@ -1,0 +1,3084 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KDS — Kestirimci Bakım Karar Destek Sistemi</title>
+<meta name="description" content="Açık Ocak & Silis Kumu Zenginleştirme Tesisi — Analitik Bakım Karar Destek Sistemi">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════ */
+:root {
+  --bg:        #0D1117;
+  --bg2:       #161B22;
+  --bg3:       #1C2128;
+  --border:    #30363D;
+  --border2:   #21262D;
+  --text:      #E6EDF3;
+  --text2:     #8D96A0;
+  --text3:     #57606A;
+  --ok:        #2EA043;
+  --ok-bg:     #0D2818;
+  --ok-text:   #56D364;
+  --warn:      #D29922;
+  --warn-bg:   #2D1E00;
+  --warn-text: #E3B341;
+  --crit:      #DA3633;
+  --crit-bg:   #2D0A09;
+  --crit-text: #FF7B72;
+  --blue:      #388BFD;
+  --blue-bg:   #051D4D;
+  --blue-text: #79C0FF;
+  --purple:    #8B5CF6;
+  --accent:    #388BFD;
+  --radius:    10px;
+  --radius-sm: 6px;
+  --shadow:    0 4px 24px rgba(0,0,0,0.4);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+  --transition: all .2s ease;
+  --sidebar-w: 220px;
+}
+
+/* ═══════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════════
+   SIDEBAR NAVIGATION
+═══════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  min-height: 100vh;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 100;
+  transition: var(--transition);
+}
+.sidebar-logo {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo .logo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #1a3a5c, #0d2d45);
+  border: 1px solid #234;
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: 100%;
+}
+.logo-icon {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.logo-text { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2; }
+.logo-sub { font-size: 10px; color: var(--text2); }
+
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 16px 16px 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: var(--transition);
+  font-size: 13px;
+  color: var(--text2);
+  border-left: 2px solid transparent;
+  text-decoration: none;
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: rgba(56,139,253,0.12); color: var(--blue-text); border-left-color: var(--blue); font-weight: 500; }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--crit);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+.site-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--text2);
+}
+.site-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); animation: pulse 2s infinite; }
+.clock-display { font-size: 12px; font-weight: 600; color: var(--text); margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+/* ═══════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════ */
+.main-content {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+.page { display: none; padding: 24px 28px; max-width: 1600px; }
+.page.active { display: block; animation: fadeSlide .25s ease; }
+@keyframes fadeSlide { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════
+   PAGE HEADER
+═══════════════════════════════════════ */
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.page-title { font-size: 20px; font-weight: 600; color: var(--text); }
+.page-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+
+/* ═══════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+.btn-primary {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+.btn-primary:hover { background: #2272dd; border-color: #2272dd; color: white; }
+.btn-danger { background: var(--crit-bg); color: var(--crit-text); border-color: var(--crit); }
+.btn-danger:hover { background: #3d0d0c; color: var(--crit-text); }
+.btn-success { background: var(--ok-bg); color: var(--ok-text); border-color: var(--ok); }
+.btn-warn { background: var(--warn-bg); color: var(--warn-text); border-color: var(--warn); }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+.btn-icon { padding: 6px 8px; }
+
+/* ═══════════════════════════════════════
+   CARDS
+═══════════════════════════════════════ */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  transition: var(--transition);
+}
+.card:hover { border-color: #3d454e; }
+.card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.card-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+
+/* ═══════════════════════════════════════
+   KPI CARDS
+═══════════════════════════════════════ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--blue);
+  opacity: 0;
+  transition: var(--transition);
+}
+.kpi-card:hover { border-color: var(--blue); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.kpi-card:hover::before { opacity: 1; }
+.kpi-card.warn-card { border-color: var(--warn); }
+.kpi-card.warn-card::before { background: var(--warn); opacity: 1; }
+.kpi-card.crit-card { border-color: var(--crit); }
+.kpi-card.crit-card::before { background: var(--crit); opacity: 1; }
+.kpi-label { font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+.kpi-val { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+.kpi-unit { font-size: 13px; font-weight: 400; color: var(--text2); margin-left: 2px; }
+.kpi-trend { font-size: 11px; margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+.trend-up { color: var(--ok-text); }
+.trend-down { color: var(--crit-text); }
+.trend-neu { color: var(--text3); }
+
+/* ═══════════════════════════════════════
+   GRIDS
+═══════════════════════════════════════ */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3-equal { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+/* ═══════════════════════════════════════
+   BADGES & STATUS
+═══════════════════════════════════════ */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.badge-ok { background: var(--ok-bg); color: var(--ok-text); border: 1px solid var(--ok); }
+.badge-warn { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn); }
+.badge-crit { background: var(--crit-bg); color: var(--crit-text); border: 1px solid var(--crit); }
+.badge-info { background: var(--blue-bg); color: var(--blue-text); border: 1px solid var(--blue); }
+.badge-purple { background: rgba(139,92,246,0.15); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.4); }
+
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.s-ok { background: var(--ok); }
+.s-warn { background: var(--warn); animation: pulse 2s infinite; }
+.s-crit { background: var(--crit); animation: pulse 1s infinite; }
+
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+/* ═══════════════════════════════════════
+   EQUIPMENT TABLE
+═══════════════════════════════════════ */
+.equip-table { width: 100%; border-collapse: separate; border-spacing: 0 4px; }
+.equip-table th {
+  font-size: 10px; font-weight: 600; color: var(--text3);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 6px 12px; text-align: left;
+}
+.equip-table th:not(:first-child) { text-align: right; }
+.equip-row td {
+  padding: 11px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  font-size: 12px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.equip-row td:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.equip-row td:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.equip-row:hover td { background: rgba(56,139,253,0.06); border-color: rgba(56,139,253,0.25); }
+.equip-row.crit td { background: var(--crit-bg); border-color: rgba(218,54,51,0.3); }
+.equip-row.warn td { background: var(--warn-bg); border-color: rgba(210,153,34,0.3); }
+.equip-name-cell { font-weight: 600; color: var(--text); }
+.equip-sub-cell { font-size: 10px; color: var(--text2); margin-top: 1px; }
+.td-right { text-align: right; font-variant-numeric: tabular-nums; }
+.val-crit { color: var(--crit-text); font-weight: 600; }
+.val-warn { color: var(--warn-text); font-weight: 600; }
+.val-ok { color: var(--ok-text); }
+
+/* ═══════════════════════════════════════
+   ALARM LIST
+═══════════════════════════════════════ */
+.alarm-list { display: flex; flex-direction: column; gap: 8px; }
+.alarm-item {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border-left: 3px solid;
+  background: var(--bg3);
+  transition: var(--transition);
+}
+.alarm-item:hover { filter: brightness(1.05); }
+.alarm-item.p1 { border-color: var(--crit); background: var(--crit-bg); }
+.alarm-item.p2 { border-color: var(--warn); background: var(--warn-bg); }
+.alarm-item.p3 { border-color: var(--blue); background: var(--blue-bg); }
+.alarm-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.alarm-equip { font-weight: 600; font-size: 12px; color: var(--text); }
+.alarm-time { font-size: 10px; color: var(--text2); }
+.alarm-desc { font-size: 11px; color: var(--text2); line-height: 1.5; }
+.alarm-actions { display: flex; gap: 6px; margin-top: 8px; }
+
+/* ═══════════════════════════════════════
+   OEE DISPLAY
+═══════════════════════════════════════ */
+.oee-ring-wrap { display: flex; flex-direction: column; align-items: center; padding: 16px 0; }
+.oee-big-val { font-size: 52px; font-weight: 700; line-height: 1; color: var(--text); }
+.oee-big-lbl { font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 6px; }
+.oee-bars { width: 100%; margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.oee-bar-row { display: flex; align-items: center; gap: 10px; font-size: 11px; }
+.oee-bar-lbl { width: 80px; color: var(--text2); flex-shrink: 0; }
+.oee-bar-track { flex: 1; height: 8px; border-radius: 4px; background: var(--bg3); overflow: hidden; }
+.oee-bar-fill { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+.oee-bar-val { width: 36px; text-align: right; font-weight: 600; color: var(--text); font-size: 12px; }
+
+/* ═══════════════════════════════════════
+   FORMS & MODALS
+═══════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 40px 20px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s ease;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+  transform: translateY(-10px);
+  transition: transform .25s ease;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--bg2); z-index: 1;
+}
+.modal-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.modal-close {
+  width: 28px; height: 28px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer; color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: var(--transition);
+}
+.modal-close:hover { background: var(--crit-bg); color: var(--crit-text); border-color: var(--crit); }
+.modal-body { padding: 20px; }
+.modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  background: var(--bg2);
+  position: sticky; bottom: 0;
+}
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-label { font-size: 11px; font-weight: 600; color: var(--text2); letter-spacing: 0.04em; }
+.form-label .required { color: var(--crit-text); }
+.form-control {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  padding: 8px 10px;
+  font-family: inherit;
+  transition: var(--transition);
+  width: 100%;
+}
+.form-control:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(56,139,253,0.15);
+}
+.form-control::placeholder { color: var(--text3); }
+select.form-control { cursor: pointer; }
+select.form-control option { background: var(--bg2); }
+.form-hint { font-size: 10px; color: var(--text3); }
+
+/* ═══════════════════════════════════════
+   CONFIG SCREEN (SET & SEND)
+═══════════════════════════════════════ */
+.config-layout { display: grid; grid-template-columns: 260px 1fr; gap: 20px; }
+.config-equip-list { display: flex; flex-direction: column; gap: 4px; }
+.config-equip-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex; align-items: center; gap: 10px;
+}
+.config-equip-item:hover { background: var(--bg3); border-color: var(--border); }
+.config-equip-item.selected { background: rgba(56,139,253,0.12); border-color: var(--blue); }
+.config-equip-item .cei-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.config-equip-item .cei-cat { font-size: 10px; color: var(--text2); }
+
+.config-panel { display: flex; flex-direction: column; gap: 16px; }
+.config-section {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.config-section-header {
+  padding: 12px 16px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.config-section-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.config-section-ref { font-size: 10px; color: var(--text3); font-style: italic; }
+.config-params { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+.param-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 90px 60px 110px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  transition: var(--transition);
+}
+.param-row:hover { border-color: var(--border); }
+.param-row.changed { border-color: rgba(56,139,253,0.5); background: rgba(56,139,253,0.06); }
+.param-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.param-desc { font-size: 10px; color: var(--text2); margin-top: 1px; }
+.param-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 8px;
+  font-family: 'Inter', inherit;
+  font-variant-numeric: tabular-nums;
+  transition: var(--transition);
+  width: 100%;
+  text-align: right;
+}
+.param-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(56,139,253,0.15); }
+.param-unit { font-size: 11px; color: var(--text2); text-align: center; }
+.param-threshold {
+  font-size: 10px; color: var(--text3);
+  text-align: center; line-height: 1.4;
+}
+.send-btn {
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--blue);
+  background: rgba(56,139,253,0.12);
+  color: var(--blue-text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+  white-space: nowrap;
+}
+.send-btn:hover { background: rgba(56,139,253,0.25); }
+.send-btn.sent { border-color: var(--ok); background: var(--ok-bg); color: var(--ok-text); }
+
+.send-all-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.send-all-info { font-size: 12px; color: var(--text2); }
+.send-all-info strong { color: var(--text); }
+.changes-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--warn);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 1px 7px;
+  margin-left: 6px;
+}
+
+/* ═══════════════════════════════════════
+   KNA ENGINE
+═══════════════════════════════════════ */
+.kna-layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; }
+.kna-steps { display: flex; flex-direction: column; gap: 0; }
+.kna-step-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px;
+  position: relative;
+}
+.kna-step-item::after {
+  content: '';
+  position: absolute;
+  left: 18px; top: 44px;
+  width: 2px; height: calc(100% - 32px);
+  background: var(--border);
+}
+.kna-step-item:last-child::after { display: none; }
+.step-num {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  color: var(--text3);
+  flex-shrink: 0;
+  background: var(--bg2);
+  position: relative; z-index: 1;
+}
+.step-num.done { background: var(--ok); border-color: var(--ok); color: white; }
+.step-num.active { background: var(--blue); border-color: var(--blue); color: white; }
+.step-info { flex: 1; }
+.step-title { font-size: 12px; font-weight: 500; color: var(--text2); }
+.step-title.active { color: var(--text); font-weight: 600; }
+.step-title.done { color: var(--ok-text); }
+.step-val { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.step-val.done { color: var(--text2); }
+
+.kna-panel { display: flex; flex-direction: column; gap: 16px; }
+.kna-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); }
+.kna-section-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.kna-section-icon { font-size: 18px; }
+.kna-section-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.kna-section-body { padding: 16px; }
+
+.option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.option-btn {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+  text-align: left;
+  display: flex; align-items: center; gap: 8px;
+}
+.option-btn:hover { background: rgba(56,139,253,0.08); border-color: var(--blue); color: var(--text); }
+.option-btn.selected { background: rgba(56,139,253,0.15); border-color: var(--blue); color: var(--blue-text); font-weight: 500; }
+.option-icon { font-size: 16px; }
+
+.why-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.why-label { font-size: 11px; font-weight: 600; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+.why-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px;
+  background: var(--blue-bg);
+  color: var(--blue-text);
+  border-radius: 50%;
+  font-size: 10px; font-weight: 700;
+}
+.why-input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 12px;
+  padding: 8px 10px;
+  font-family: inherit;
+  transition: var(--transition);
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+}
+.why-input:focus { outline: none; border-color: var(--blue); }
+
+.fmea-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.fmea-table th {
+  background: var(--bg3);
+  padding: 8px 10px; text-align: center;
+  font-size: 10px; font-weight: 600; color: var(--text3);
+  letter-spacing: 0.05em; text-transform: uppercase;
+  border: 1px solid var(--border);
+}
+.fmea-table td { padding: 8px 10px; border: 1px solid var(--border2); text-align: center; font-size: 11px; color: var(--text2); }
+.fmea-table td:first-child { text-align: left; font-weight: 500; color: var(--text); }
+.fmea-score { font-weight: 700; }
+.fmea-score.low { color: var(--ok-text); }
+.fmea-score.med { color: var(--warn-text); }
+.fmea-score.high { color: var(--crit-text); }
+.rpn-input {
+  width: 50px; padding: 4px; text-align: center;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text); font-size: 11px;
+  font-family: inherit;
+}
+.rpn-input:focus { outline: none; border-color: var(--blue); }
+
+.action-plan { background: var(--ok-bg); border: 1px solid var(--ok); border-radius: var(--radius); padding: 16px; }
+.action-plan-title { font-size: 12px; font-weight: 700; color: var(--ok-text); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.action-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 12px; color: var(--text2); }
+.action-check { color: var(--ok-text); font-weight: 700; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════
+   COST MODULE
+═══════════════════════════════════════ */
+.cost-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.cost-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.cost-label { font-size: 10px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.cost-val { font-size: 22px; font-weight: 700; color: var(--text); }
+.cost-unit { font-size: 12px; color: var(--text2); }
+.cost-sub { font-size: 10px; color: var(--text3); margin-top: 4px; }
+
+.work-order-table { width: 100%; border-collapse: separate; border-spacing: 0 4px; }
+.work-order-table th { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 12px; text-align: left; }
+.work-order-table td { padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border2); font-size: 12px; }
+.work-order-table td:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.work-order-table td:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; border-right: 1px solid var(--border2); }
+
+/* ═══════════════════════════════════════
+   RISK MATRIX
+═══════════════════════════════════════ */
+.risk-layout { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+.risk-matrix-wrap { overflow-x: auto; }
+.risk-matrix {
+  border-collapse: collapse;
+  margin: 0 auto;
+}
+.risk-matrix th, .risk-matrix td {
+  width: 70px; height: 60px;
+  text-align: center; vertical-align: middle;
+  border: 1px solid var(--border);
+  font-size: 11px;
+}
+.risk-matrix th { background: var(--bg3); color: var(--text2); font-weight: 600; font-size: 10px; }
+.risk-matrix .axis-label { font-size: 10px; color: var(--text2); }
+.risk-cell { cursor: pointer; transition: var(--transition); border-radius: 4px; }
+.risk-cell:hover { filter: brightness(1.3); transform: scale(1.05); position: relative; z-index: 1; }
+.risk-cell.risk-low { background: rgba(46,160,67,0.25); color: var(--ok-text); }
+.risk-cell.risk-med { background: rgba(210,153,34,0.25); color: var(--warn-text); }
+.risk-cell.risk-high { background: rgba(239,111,39,0.25); color: #ef6f27; }
+.risk-cell.risk-crit { background: rgba(218,54,51,0.35); color: var(--crit-text); }
+.risk-cell.selected { outline: 2px solid white; }
+.risk-cell-label { font-size: 9px; font-weight: 700; display: block; }
+.risk-cell-score { font-size: 15px; font-weight: 700; display: block; }
+
+.decision-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.decision-indicator {
+  text-align: center; padding: 20px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+.decision-indicator.go { background: var(--ok-bg); border: 1px solid var(--ok); }
+.decision-indicator.warn { background: var(--warn-bg); border: 1px solid var(--warn); }
+.decision-indicator.stop { background: var(--crit-bg); border: 1px solid var(--crit); }
+.decision-icon { font-size: 36px; margin-bottom: 8px; }
+.decision-text { font-size: 16px; font-weight: 700; }
+.decision-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+.decision-actions-list { display: flex; flex-direction: column; gap: 8px; }
+.decision-action-item { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; padding: 8px 10px; background: var(--bg3); border-radius: 6px; border: 1px solid var(--border2); }
+.da-icon { flex-shrink: 0; font-size: 14px; }
+
+/* ═══════════════════════════════════════
+   ANALYTICS CHARTS
+═══════════════════════════════════════ */
+.chart-wrap { position: relative; }
+.chart-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+.filter-tabs { display: flex; gap: 4px; }
+.filter-tab {
+  font-size: 11px; padding: 3px 8px;
+  border-radius: 20px; border: 1px solid var(--border);
+  background: transparent; color: var(--text2);
+  cursor: pointer; transition: var(--transition);
+  font-family: inherit;
+}
+.filter-tab.active { background: var(--blue-bg); color: var(--blue-text); border-color: var(--blue); }
+.filter-tab:hover:not(.active) { background: var(--bg3); }
+
+/* ═══════════════════════════════════════
+   HEATMAP
+═══════════════════════════════════════ */
+.heatmap-wrap { overflow-x: auto; }
+.heatmap { border-collapse: separate; border-spacing: 3px; }
+.heatmap th { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; padding: 4px 8px; }
+.heatmap td { width: 80px; height: 48px; border-radius: 4px; text-align: center; vertical-align: middle; font-size: 11px; font-weight: 600; cursor: default; transition: var(--transition); }
+.heatmap td:hover { filter: brightness(1.2); transform: scale(1.04); }
+.hm-0 { background: rgba(218,54,51,0.8); color: #fff; }
+.hm-1 { background: rgba(239,111,39,0.6); color: #fff; }
+.hm-2 { background: rgba(210,153,34,0.5); color: var(--warn-text); }
+.hm-3 { background: rgba(46,160,67,0.3); color: var(--ok-text); }
+.hm-4 { background: rgba(56,139,253,0.25); color: var(--blue-text); }
+.hm-nd { background: var(--bg3); color: var(--text3); font-size: 10px; }
+
+/* ═══════════════════════════════════════
+   TOAST NOTIFICATION
+═══════════════════════════════════════ */
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  min-width: 280px;
+  animation: toastIn .3s ease;
+  max-width: 360px;
+}
+@keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+.toast.success { border-color: var(--ok); }
+.toast.success .toast-icon { color: var(--ok-text); }
+.toast.warn { border-color: var(--warn); }
+.toast.warn .toast-icon { color: var(--warn-text); }
+.toast.error { border-color: var(--crit); }
+.toast.error .toast-icon { color: var(--crit-text); }
+.toast-icon { font-size: 16px; flex-shrink: 0; }
+.toast-msg { color: var(--text); flex: 1; }
+.toast-close { color: var(--text3); cursor: pointer; font-size: 16px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════
+   ALARM PANEL (TOP BAR)
+═══════════════════════════════════════ */
+.topbar-main {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(13,17,23,0.9);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 52px;
+}
+.topbar-brand { display: flex; align-items: center; gap: 10px; }
+.topbar-breadcrumb { font-size: 13px; color: var(--text2); }
+.topbar-breadcrumb span { color: var(--text); font-weight: 500; }
+.topbar-right-actions { display: flex; align-items: center; gap: 10px; }
+.alarm-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--crit-bg);
+  border: 1px solid var(--crit);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px; font-weight: 600;
+  color: var(--crit-text);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.alarm-pill:hover { background: rgba(218,54,51,0.2); }
+.alarm-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--crit); animation: pulse 1s infinite; }
+
+/* ═══════════════════════════════════════
+   DIVIDERS & MISC
+═══════════════════════════════════════ */
+.sep { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.info-box {
+  background: var(--blue-bg);
+  border: 1px solid rgba(56,139,253,0.3);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--text2);
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.info-box-icon { font-size: 14px; flex-shrink: 0; color: var(--blue-text); margin-top: 1px; }
+.warn-box {
+  background: var(--warn-bg);
+  border: 1px solid rgba(210,153,34,0.4);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--text2);
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.ref-note { font-size: 10px; color: var(--text3); font-style: italic; margin-top: 8px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #4a535d; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 40px; color: var(--text3); }
+.empty-state-icon { font-size: 36px; margin-bottom: 10px; }
+.empty-state-text { font-size: 13px; }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .grid-3 { grid-template-columns: 1fr; }
+  .config-layout { grid-template-columns: 1fr; }
+  .kna-layout { grid-template-columns: 1fr; }
+  .risk-layout { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════
+     SIDEBAR
+═══════════════════════════════ -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-badge">
+      <div class="logo-icon">⚙️</div>
+      <div>
+        <div class="logo-text">KB — KDS</div>
+        <div class="logo-sub">Kestirimci Bakım Sistemi</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-section-label">ANA MODÜLLER</div>
+  <a class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
+    <span class="nav-icon">📊</span>
+    Ana Dashboard
+    <span class="nav-badge" id="alarm-nav-badge">3</span>
+  </a>
+  <a class="nav-item" onclick="navigate('equipment')" id="nav-equipment">
+    <span class="nav-icon">🏭</span>
+    Ekipman Defteri
+  </a>
+  <a class="nav-item" onclick="navigate('config')" id="nav-config">
+    <span class="nav-icon">⚙️</span>
+    Ekipman Konfigürasyonu
+  </a>
+
+  <div class="sidebar-section-label">ANALİTİK</div>
+  <a class="nav-item" onclick="navigate('kna')" id="nav-kna">
+    <span class="nav-icon">🔍</span>
+    KNA Motoru
+  </a>
+  <a class="nav-item" onclick="navigate('cost')" id="nav-cost">
+    <span class="nav-icon">💰</span>
+    Bakım Maliyeti
+  </a>
+  <a class="nav-item" onclick="navigate('analytics')" id="nav-analytics">
+    <span class="nav-icon">📈</span>
+    KPI Analitik
+  </a>
+  <a class="nav-item" onclick="navigate('decision')" id="nav-decision">
+    <span class="nav-icon">🚦</span>
+    Acil Duruş Kararı
+  </a>
+
+  <div class="sidebar-footer">
+    <div class="site-pill">
+      <span class="site-dot"></span>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text)">Saha A — Açık Ocak</div>
+        <div style="font-size:10px;color:var(--text3)">Silis Kumu Zenginleştirme</div>
+      </div>
+    </div>
+    <div class="clock-display" id="clock-display">--:--:--</div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════
+     TOPBAR
+═══════════════════════════════ -->
+<div style="margin-left:var(--sidebar-w); display:flex; flex-direction:column; flex:1;">
+<div class="topbar-main">
+  <div class="topbar-breadcrumb">
+    KDS · <span id="current-page-name">Ana Dashboard</span>
+  </div>
+  <div class="topbar-right-actions">
+    <div class="alarm-pill" onclick="navigate('dashboard')">
+      <div class="alarm-dot"></div>
+      <span id="alarm-count-top">3 aktif alarm</span>
+    </div>
+    <button class="btn btn-sm" onclick="openAddEquipModal()">+ Ekipman Ekle</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     PAGE: DASHBOARD
+═══════════════════════════════ -->
+<div class="page active" id="page-dashboard">
+  <div style="padding:24px 28px; max-width:1600px;">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Ana Dashboard</div>
+        <div class="page-sub">Genel ekipman sağlığı, KPI özeti ve aktif alarmlar</div>
+      </div>
+      <div class="header-actions">
+        <div class="filter-tabs">
+          <button class="filter-tab" onclick="setPeriod(this,'7G')">7G</button>
+          <button class="filter-tab active" onclick="setPeriod(this,'30G')">30G</button>
+          <button class="filter-tab" onclick="setPeriod(this,'90G')">90G</button>
+          <button class="filter-tab" onclick="setPeriod(this,'6A')">6A</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI ROW -->
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <!-- MAIN GRID -->
+    <div class="grid-3">
+      <!-- Equipment Table -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Ekipman Durumu — Gerçek Zamanlı</div>
+            <div class="card-sub">ISO 10816 titreşim & sıcaklık izleme</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm btn-primary" onclick="openAddEquipModal()">+ Ekipman Ekle</button>
+          </div>
+        </div>
+        <table class="equip-table">
+          <thead>
+            <tr>
+              <th>Ekipman</th>
+              <th style="text-align:right">Titreşim</th>
+              <th style="text-align:right">Sıcaklık</th>
+              <th style="text-align:right">MTBF</th>
+              <th style="text-align:right">OEE</th>
+              <th style="text-align:right">Durum</th>
+            </tr>
+          </thead>
+          <tbody id="equip-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Right column -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <!-- OEE -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">OEE Bileşenleri</div>
+            <span class="badge badge-warn">Hedef: 85%</span>
+          </div>
+          <div class="oee-ring-wrap">
+            <div class="oee-big-val" id="oee-big-val">—</div>
+            <div class="oee-big-lbl">Overall Equipment Effectiveness</div>
+          </div>
+          <div class="oee-bars">
+            <div class="oee-bar-row">
+              <span class="oee-bar-lbl">Kullanılabilirlik</span>
+              <div class="oee-bar-track"><div class="oee-bar-fill" id="avail-bar" style="background: var(--ok);"></div></div>
+              <span class="oee-bar-val" id="avail-val">—</span>
+            </div>
+            <div class="oee-bar-row">
+              <span class="oee-bar-lbl">Performans</span>
+              <div class="oee-bar-track"><div class="oee-bar-fill" id="perf-bar" style="background: var(--warn);"></div></div>
+              <span class="oee-bar-val" id="perf-val">—</span>
+            </div>
+            <div class="oee-bar-row">
+              <span class="oee-bar-lbl">Kalite</span>
+              <div class="oee-bar-track"><div class="oee-bar-fill" id="qual-bar" style="background: var(--blue);"></div></div>
+              <span class="oee-bar-val" id="qual-val">—</span>
+            </div>
+          </div>
+          <div class="ref-note">MEH Sec.2 Ch.3 · OEE = Kullanılabilirlik × Performans × Kalite</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alarms + MTBF Chart -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Aktif Alarmlar — Öncelik Sıralı</div>
+          </div>
+          <span class="badge badge-crit" id="alarm-count-badge">—</span>
+        </div>
+        <div class="alarm-list" id="alarm-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">MTBF Trend — 6 Ay</div>
+          <span class="badge badge-ok" id="mtbf-trend-badge">—</span>
+        </div>
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="mtbfChart"></canvas>
+        </div>
+        <div class="ref-note">MEH Sec.1 Ch.2 — MTBF = Toplam çalışma süresi ÷ Arıza sayısı</div>
+      </div>
+    </div>
+
+    <!-- Cost -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Aylık Bakım Maliyeti Dağılımı</div>
+        <button class="btn btn-sm" onclick="navigate('cost')">Maliyet Analizi →</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="chart-wrap" style="height:200px"><canvas id="costPieChart"></canvas></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="costBarChart"></canvas></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:11px;color:var(--text2)">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#8B5CF6;display:inline-block"></span>İşçilik</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#2EA043;display:inline-block"></span>Yedek parça</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#D29922;display:inline-block"></span>Dış servis</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#DA3633;display:inline-block"></span>Duruş kaybı</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     PAGE: EQUIPMENT REGISTRY
+═══════════════════════════════ -->
+<div class="page" id="page-equipment">
+  <div style="padding:24px 28px; max-width:1600px;">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Ekipman Defteri</div>
+        <div class="page-sub">Tüm ekipmanların kayıt ve ölçüm geçmişi</div>
+      </div>
+      <div class="header-actions">
+        <input type="text" id="equip-search" class="form-control" style="width:220px;" placeholder="🔍 Ekipman ara..." oninput="filterEquipList()">
+        <button class="btn btn-primary" onclick="openAddEquipModal()">+ Yeni Ekipman</button>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-bottom:16px;">
+      <span class="info-box-icon">ℹ️</span>
+      <div>
+        <strong style="color:var(--blue-text)">ISO 10816 Titreşim Sınıfları:</strong>
+        &nbsp;<span class="badge badge-ok">İyi &lt;2.8 mm/s</span>&nbsp;
+        <span class="badge badge-info">Kabul &lt;7.1 mm/s</span>&nbsp;
+        <span class="badge badge-warn">Uyarı &lt;11.2 mm/s</span>&nbsp;
+        <span class="badge badge-crit">Tehlikeli ≥11.2 mm/s</span>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;">MEH Predicive Maintenance Ch. — Sensör eşik değerleri bu standarda göre otomatik sınıflandırılmaktadır.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <table class="equip-table" id="equip-registry-table">
+        <thead>
+          <tr>
+            <th>Ekipman Adı</th>
+            <th style="text-align:right">Titreşim</th>
+            <th style="text-align:right">Sıcaklık</th>
+            <th style="text-align:right">MTBF (h)</th>
+            <th style="text-align:right">MTTR (h)</th>
+            <th style="text-align:right">OEE (%)</th>
+            <th style="text-align:right">Son Bakım</th>
+            <th style="text-align:right">İşlem</th>
+          </tr>
+        </thead>
+        <tbody id="equip-registry-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     PAGE: EQUIPMENT CONFIG
+═══════════════════════════════ -->
+<div class="page" id="page-config">
+  <div style="padding:24px 28px; max-width:1600px;">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Ekipman Konfigürasyonu</div>
+        <div class="page-sub">Parametre girişi — Set & Send Panel</div>
+      </div>
+      <div class="header-actions">
+        <div id="changes-indicator" style="display:none;">
+          <span class="changes-count" id="changes-count">0</span> değişiklik
+        </div>
+        <button class="btn btn-primary" id="send-all-btn" onclick="sendAllChanges()">⬆ Tümünü Kaydet</button>
+      </div>
+    </div>
+
+    <div class="config-layout">
+      <!-- Left: Equipment Selector -->
+      <div>
+        <div class="card" style="padding:14px;">
+          <div class="card-header" style="margin-bottom:10px;">
+            <div class="card-title">Ekipman Seç</div>
+          </div>
+          <div class="config-equip-list" id="config-equip-list"></div>
+        </div>
+      </div>
+
+      <!-- Right: Config Panels -->
+      <div class="config-panel" id="config-panel">
+        <div class="empty-state">
+          <div class="empty-state-icon">↖️</div>
+          <div class="empty-state-text">Konfigüre etmek için sol panelden bir ekipman seçin</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     PAGE: KNA ENGINE
+═══════════════════════════════ -->
+<div class="page" id="page-kna">
+  <div style="padding:24px 28px; max-width:1600px;">
+    <div class="page-header">
+      <div>
+        <div class="page-title">KNA Motoru — Kök Neden Analizi</div>
+        <div class="page-sub">RCM tabanlı adım adım karar rehberi (MEH RCM & FMEA)</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="resetKNA()">↺ Yeni Analiz</button>
+        <button class="btn btn-primary" onclick="exportKNA()">⬇ Rapor İndir</button>
+      </div>
+    </div>
+
+    <div class="kna-layout">
+      <!-- Steps tracker -->
+      <div class="card" style="padding:14px;height:fit-content;">
+        <div class="card-title" style="margin-bottom:12px;">Analiz Adımları</div>
+        <div class="kna-steps" id="kna-steps-tracker"></div>
+      </div>
+
+      <!-- Main body -->
+      <div class="kna-panel" id="kna-panel"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     PAGE: COST
+═══════════════════════════════ -->
+<div class="page" id="page-cost">
+  <div style="padding:24px 28px; max-width:1600px;">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Bakım Maliyeti Analizi</div>
+        <div class="page-sub">LCC, PM/CM oranı ve bütçe takibi (MEH Sec.3 — Economics)</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openAddWorkOrderModal()">+ İş Emri Ekle</button>
+      </div>
+    </div>
+
+    <div class="cost-summary-grid" id="cost-summary-grid"></div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Maliyet Kategori Dağılımı</div>
+        </div>
+        <div class="chart-wrap" style="height:220px"><canvas id="costCatChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">PM/CM Oranı Analizi</div>
+          <span class="badge badge-info">Hedef >3:1</span>
+        </div>
+        <div id="pmcm-display" style="padding:20px 0;"></div>
+        <div class="ref-note">MEH Sec.3 — PM/CM oranı 3:1'in altında ise maliyetler artış eğilimindedir.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">İş Emirleri</div>
+        <div style="display:flex;gap:6px;">
+          <select class="form-control" style="width:150px;" id="wo-filter-type">
+            <option value="">Tümü</option>
+            <option value="PM">Planlı (PM)</option>
+            <option value="CM">Arıza (CM)</option>
+            <option value="PdM">Kestirimci (PdM)</option>
+          </select>
+        </div>
+      </div>
+      <table class="work-order-table" id="work-order-table">
+        <thead>
+          <tr>
+            <th>İş Emri No</th>
+            <th>Ekipman</th>
+            <th>Tür</th>
+            <th>Açıklama</th>
+            <th style="text-align:right">Maliyet (₺)</th>
+            <th style="text-align:right">Süre (h)</th>
+            <th>Tarih</th>
+            <th>Durum</th>
+          </tr>
+        </thead>
+        <tbody id="work-order-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     PAGE: KPI ANALYTICS
+═══════════════════════════════ -->
+<div class="page" id="page-analytics">
+  <div style="padding:24px 28px; max-width:1600px;">
+    <div class="page-header">
+      <div>
+        <div class="page-title">KPI Analitik</div>
+        <div class="page-sub">OEE, MTBF, MTTR ve güvenilirlik trend analizi</div>
+      </div>
+      <div class="header-actions">
+        <div class="filter-tabs">
+          <button class="filter-tab" onclick="setAnalyticsPeriod(this,'7G')">7G</button>
+          <button class="filter-tab active" onclick="setAnalyticsPeriod(this,'30G')">30G</button>
+          <button class="filter-tab" onclick="setAnalyticsPeriod(this,'90G')">90G</button>
+          <button class="filter-tab" onclick="setAnalyticsPeriod(this,'6A')">6A</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="chart-title">OEE Trend — Son 6 Ay</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="oeeAnalChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="chart-title">MTBF / MTTR Karşılaştırma</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="mtbfMttrChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="chart-title">Arıza Tekrar Oranı — Ekipman Bazında</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="repeatRateChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="chart-title">Bakım Maliyet Trendi (K₺)</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="costTrendAnalChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" style="margin-bottom:16px;">
+        <div class="card-title">Ekipman Güvenilirlik Isı Haritası</div>
+        <div class="card-sub">OEE skoru — kırmızı = kritik, mavi = mükemmel</div>
+      </div>
+      <div class="heatmap-wrap" id="heatmap-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     PAGE: DECISION ENGINE
+═══════════════════════════════ -->
+<div class="page" id="page-decision">
+  <div style="padding:24px 28px; max-width:1600px;">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Acil Duruş Karar Motoru</div>
+        <div class="page-sub">Risk matrisi & karar ağacı — MEH Risk-Based Maintenance</div>
+      </div>
+    </div>
+
+    <div class="risk-layout">
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header">
+            <div class="card-title">Arıza Şiddet & Olasılık Matrisi</div>
+            <div class="card-sub">Hücreye tıklayarak risk seviyesi seçin</div>
+          </div>
+          <div class="risk-matrix-wrap" id="risk-matrix-wrap"></div>
+          <div class="ref-note" style="margin-top:12px;">MEH Risk-Based Maintenance — 5×5 Olasılık/Şiddet matrisi ISO 31000 uyumlu</div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Senaryo Bilgileri</div>
+          </div>
+          <div class="form-grid" style="gap:10px;">
+            <div class="form-group">
+              <label class="form-label">Ekipman</label>
+              <select id="dec-equip" class="form-control" style="font-size:12px;"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Arıza tipi</label>
+              <select id="dec-type" class="form-control" style="font-size:12px;">
+                <option>Titreşim aşımı</option>
+                <option>Sıcaklık aşımı</option>
+                <option>Mekanik arıza</option>
+                <option>Elektrik arızası</option>
+                <option>Hidrolik kayıp</option>
+                <option>Rulman hasarı</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Güvenlik riski var mı?</label>
+              <select id="dec-safety" class="form-control" style="font-size:12px;">
+                <option value="no">Hayır</option>
+                <option value="yes">Evet — Personel tehlikesi</option>
+                <option value="env">Evet — Çevre kirliliği</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Üretim etkisi</label>
+              <select id="dec-prod" class="form-control" style="font-size:12px;">
+                <option value="none">Yok (redundant sistem)</option>
+                <option value="partial">Kısmi (%20–60 kayıp)</option>
+                <option value="full">Tam duruş</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <button class="btn btn-primary" style="width:100%;" onclick="evaluateDecision()">🚦 Karar Motorunu Çalıştır</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="decision-panel" id="decision-result">
+          <div style="text-align:center;padding:40px;color:var(--text3);">
+            <div style="font-size:40px;margin-bottom:12px;">🚦</div>
+            <div style="font-size:13px;">Risk matrisinden bir hücre seçin<br>ve senaryoyu doldurun</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end main-content wrapper -->
+
+<!-- ═══════════════════════════════
+     MODAL: ADD/EDIT EQUIPMENT
+═══════════════════════════════ -->
+<div class="modal-overlay" id="equip-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="equip-modal-title">Yeni Ekipman Ekle</div>
+      <div class="modal-close" onclick="closeModal('equip-modal')">✕</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="equip-edit-id">
+
+      <div class="form-group full" style="margin-bottom:14px;">
+        <div class="info-box">
+          <span class="info-box-icon">ℹ️</span>
+          <span>Temel bilgileri girin. Titreşim/sıcaklık değerleri girildiğinde ISO 10816 sınıflandırması otomatik yapılır ve MTBF/MTTR hesaplanır.</span>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">📋 Temel Bilgiler</div>
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label class="form-label">Ekipman Adı <span class="required">*</span></label>
+          <input type="text" id="e-name" class="form-control" placeholder="örn. Vibrasyonlu Elek #1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kategori <span class="required">*</span></label>
+          <select id="e-cat" class="form-control">
+            <option value="elek">Elek / Eleme</option>
+            <option value="konveyor">Konveyör / Taşıma</option>
+            <option value="pompa">Pompa</option>
+            <option value="crusher">Crusher / Kırıcı</option>
+            <option value="motor">Elektrik Motoru</option>
+            <option value="filtre">Filtre / Susuzlandırma</option>
+            <option value="hidro">Hidrosiklon</option>
+            <option value="diger">Diğer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lokasyon</label>
+          <select id="e-loc" class="form-control">
+            <option>Saha A — Açık Ocak</option>
+            <option>Saha B — Kırma-Eleme</option>
+            <option>Zenginleştirme Ünitesi</option>
+            <option>Taşıma Hattı</option>
+            <option>Susuzlandırma</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Üretici / Model</label>
+          <input type="text" id="e-model" class="form-control" placeholder="örn. Metso LT120">
+        </div>
+      </div>
+
+      <hr class="sep">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">📡 Kestirimci Bakım Verileri</div>
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label class="form-label">Titreşim (mm/s)</label>
+          <input type="number" id="e-vib" class="form-control" placeholder="0.0" step="0.1" min="0" oninput="checkVibThreshold()">
+          <div class="form-hint" id="vib-hint">ISO 10816: &lt;2.8 İyi · &lt;7.1 Kabul · &lt;11.2 Uyarı · ≥11.2 Tehlikeli</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sıcaklık (°C)</label>
+          <input type="number" id="e-temp" class="form-control" placeholder="0" min="0" oninput="checkTempThreshold()">
+          <div class="form-hint" id="temp-hint">Normal &lt;65°C · Uyarı 65–80°C · Kritik ≥80°C</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Çalışma Saati</label>
+          <input type="number" id="e-op-hours" class="form-control" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Son Bakım Tarihi</label>
+          <input type="date" id="e-last-maint" class="form-control">
+        </div>
+      </div>
+
+      <hr class="sep">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">📊 Arıza & Performans Verileri</div>
+      <div class="form-grid-3" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label class="form-label">Arıza sayısı (dönem)</label>
+          <input type="number" id="e-fail-cnt" class="form-control" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Toplam duruş süresi (h)</label>
+          <input type="number" id="e-downtime" class="form-control" placeholder="0" min="0" step="0.1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Performans faktörü (%)</label>
+          <input type="number" id="e-perf" class="form-control" placeholder="100" min="0" max="100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kalite faktörü (%)</label>
+          <input type="number" id="e-qual" class="form-control" placeholder="100" min="0" max="100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tekrar eden arıza sayısı</label>
+          <input type="number" id="e-repeat-fail" class="form-control" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Aylık bakım maliyeti (₺)</label>
+          <input type="number" id="e-cost" class="form-control" placeholder="0" min="0">
+        </div>
+      </div>
+
+      <div id="equip-calc-preview" style="display:none;" class="info-box" style="margin-top:8px;">
+        <span class="info-box-icon">🧮</span>
+        <div id="equip-calc-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('equip-modal')">İptal</button>
+      <button class="btn btn-primary" onclick="saveEquipment()">💾 Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     MODAL: ADD WORK ORDER
+═══════════════════════════════ -->
+<div class="modal-overlay" id="wo-modal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title">İş Emri Ekle</div>
+      <div class="modal-close" onclick="closeModal('wo-modal')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Ekipman <span class="required">*</span></label>
+          <select id="wo-equip" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">İş Emri Türü <span class="required">*</span></label>
+          <select id="wo-type" class="form-control">
+            <option value="PM">Planlı Bakım (PM)</option>
+            <option value="CM">Arıza Bakımı (CM)</option>
+            <option value="PdM">Kestirimci Bakım (PdM)</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Açıklama <span class="required">*</span></label>
+          <input type="text" id="wo-desc" class="form-control" placeholder="örn. Rulman değişimi — Vibrasyonlu Elek #1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Maliyet (₺)</label>
+          <input type="number" id="wo-cost" class="form-control" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Süre (saat)</label>
+          <input type="number" id="wo-duration" class="form-control" placeholder="0" min="0" step="0.5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tarih</label>
+          <input type="date" id="wo-date" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Durum</label>
+          <select id="wo-status" class="form-control">
+            <option value="open">Açık</option>
+            <option value="inprogress">Devam Ediyor</option>
+            <option value="done">Tamamlandı</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">İşçilik maliyeti (₺)</label>
+          <input type="number" id="wo-labor" class="form-control" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Yedek parça maliyeti (₺)</label>
+          <input type="number" id="wo-parts" class="form-control" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dış servis maliyeti (₺)</label>
+          <input type="number" id="wo-ext" class="form-control" placeholder="0" min="0">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('wo-modal')">İptal</button>
+      <button class="btn btn-primary" onclick="saveWorkOrder()">💾 Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ═══════════════════════════════
+     JAVASCRIPT APPLICATION
+═══════════════════════════════ -->
+<script>
+'use strict';
+
+// ═══════════════════════
+// STATE & DATA
+// ═══════════════════════
+const KDS = {
+  equipment: [],
+  alarms: [],
+  workOrders: [],
+  knaState: {},
+  charts: {},
+  pendingChanges: {},
+  selectedConfigEquip: null,
+  selectedRiskCell: null,
+};
+
+// Default equipment seed data
+const DEFAULT_EQUIPMENT = [
+  {id:'eq1', name:'Vibrasyonlu Elek #1', cat:'elek', loc:'Saha B — Kırma-Eleme', model:'Haver & Boecker',
+   vib:14.2, temp:68, opHours:4800, lastMaint:'2025-12-15', failCnt:4, downtime:18, perf:78, qual:92, repeatFail:3, cost:42000},
+  {id:'eq2', name:'Bantlı Konveyör K-3', cat:'konveyor', loc:'Taşıma Hattı', model:'Flexowell',
+   vib:8.7, temp:52, opHours:7200, lastMaint:'2026-01-10', failCnt:2, downtime:8, perf:82, qual:95, repeatFail:1, cost:18500},
+  {id:'eq3', name:'Hidrosiklon Pompası', cat:'pompa', loc:'Zenginleştirme Ünitesi', model:'Warman',
+   vib:3.1, temp:44, opHours:9100, lastMaint:'2026-02-20', failCnt:1, downtime:3, perf:91, qual:97, repeatFail:0, cost:12000},
+  {id:'eq4', name:'Crusher #2', cat:'crusher', loc:'Saha B — Kırma-Eleme', model:'Metso HP200',
+   vib:5.8, temp:71, opHours:5600, lastMaint:'2025-11-30', failCnt:2, downtime:10, perf:88, qual:94, repeatFail:1, cost:35000},
+  {id:'eq5', name:'Elektrik Motoru M-7', cat:'motor', loc:'Zenginleştirme Ünitesi', model:'ABB M3BP',
+   vib:2.4, temp:39, opHours:11000, lastMaint:'2026-03-01', failCnt:0, downtime:0, perf:97, qual:99, repeatFail:0, cost:5000},
+  {id:'eq6', name:'Filtre Pres FP-1', cat:'filtre', loc:'Susuzlandırma', model:'ANDRITZ',
+   vib:4.2, temp:48, opHours:6300, lastMaint:'2026-01-25', failCnt:1, downtime:5, perf:85, qual:96, repeatFail:0, cost:21000},
+];
+
+const DEFAULT_WORK_ORDERS = [
+  {id:'wo1', equip:'eq1', type:'CM', desc:'Rulman değişimi — titreşim kritik eşik aşımı', cost:28000, labor:8500, parts:16000, ext:3500, duration:6, date:'2026-04-01', status:'done'},
+  {id:'wo2', equip:'eq4', type:'PM', desc:'Yağlama bakımı — 500 saatlik periyodik', cost:4500, labor:2000, parts:2000, ext:500, duration:2, date:'2026-04-05', status:'done'},
+  {id:'wo3', equip:'eq2', type:'PdM', desc:'Titreşim uyarısı — yatak kontrolü planlandı', cost:12000, labor:5000, parts:6000, ext:1000, duration:4, date:'2026-04-12', status:'inprogress'},
+  {id:'wo4', equip:'eq3', type:'PM', desc:'500 saatlik pompa bakımı', cost:7500, labor:3000, parts:4000, ext:500, duration:3, date:'2026-04-14', status:'open'},
+];
+
+// ═══════════════════════
+// INIT
+// ═══════════════════════
+function init() {
+  loadData();
+  startClock();
+  renderDashboard();
+  renderEquipmentRegistry();
+  renderConfigEquipList();
+  initKNA();
+  renderCostPage();
+  renderAnalytics();
+  renderRiskMatrix();
+  renderDecisionEquipSelect();
+}
+
+function loadData() {
+  try {
+    const eq = localStorage.getItem('kds_equipment');
+    KDS.equipment = eq ? JSON.parse(eq) : [...DEFAULT_EQUIPMENT];
+    const wo = localStorage.getItem('kds_workOrders');
+    KDS.workOrders = wo ? JSON.parse(wo) : [...DEFAULT_WORK_ORDERS];
+  } catch(e) {
+    KDS.equipment = [...DEFAULT_EQUIPMENT];
+    KDS.workOrders = [...DEFAULT_WORK_ORDERS];
+  }
+  generateAlarms();
+}
+
+function saveData() {
+  localStorage.setItem('kds_equipment', JSON.stringify(KDS.equipment));
+  localStorage.setItem('kds_workOrders', JSON.stringify(KDS.workOrders));
+}
+
+function generateAlarms() {
+  KDS.alarms = [];
+  KDS.equipment.forEach(eq => {
+    const status = getEquipStatus(eq);
+    if(status === 'crit') {
+      KDS.alarms.unshift({p:'p1', equip: eq.id, equipName: eq.name, time: 'Bugün', desc: buildAlarmDesc(eq, 'crit'), action:'rca'});
+    } else if(status === 'warn') {
+      KDS.alarms.push({p:'p2', equip: eq.id, equipName: eq.name, time: 'Bugün', desc: buildAlarmDesc(eq, 'warn'), action:'plan'});
+    }
+  });
+  updateAlarmCounts();
+}
+
+function buildAlarmDesc(eq, level) {
+  let parts = [];
+  const vs = getVibStatus(eq.vib);
+  const ts = getTempStatus(eq.temp);
+  if(vs === 'crit' || (vs === 'warn' && level === 'warn')) parts.push(`Titreşim: ${eq.vib} mm/s (ISO eşik: 11.2 mm/s)`);
+  if(ts === 'crit' || (ts === 'warn' && level === 'warn')) parts.push(`Sıcaklık: ${eq.temp}°C (uyarı eşiği: 65°C)`);
+  if(eq.repeatFail > 1) parts.push(`Kronik arıza: ${eq.repeatFail} tekrar / dönem`);
+  return parts.join(' · ') || 'Genel durum uyarısı';
+}
+
+function updateAlarmCounts() {
+  const cnt = KDS.alarms.length;
+  const badge = document.getElementById('alarm-nav-badge');
+  const top = document.getElementById('alarm-count-top');
+  const bdg = document.getElementById('alarm-count-badge');
+  if(badge) badge.textContent = cnt;
+  if(top) top.textContent = `${cnt} aktif alarm`;
+  if(bdg) { bdg.textContent = `${cnt} açık`; bdg.className = 'badge ' + (cnt > 0 ? 'badge-crit' : 'badge-ok'); }
+}
+
+// ═══════════════════════
+// CALCULATIONS
+// ═══════════════════════
+function calcMTBF(eq) {
+  if(!eq.failCnt || eq.failCnt === 0) return eq.opHours || 0;
+  return Math.round((eq.opHours || 0) / eq.failCnt);
+}
+function calcMTTR(eq) {
+  if(!eq.failCnt || eq.failCnt === 0) return 0;
+  return parseFloat(((eq.downtime || 0) / eq.failCnt).toFixed(1));
+}
+function calcAvailability(eq) {
+  const mtbf = calcMTBF(eq);
+  const mttr = calcMTTR(eq);
+  if(mtbf + mttr === 0) return 100;
+  return parseFloat(((mtbf / (mtbf + mttr)) * 100).toFixed(1));
+}
+function calcOEE(eq) {
+  const avail = calcAvailability(eq) / 100;
+  const perf = (eq.perf || 100) / 100;
+  const qual = (eq.qual || 100) / 100;
+  return parseFloat((avail * perf * qual * 100).toFixed(1));
+}
+function calcRepeatRate(eq) {
+  if(!eq.failCnt) return 0;
+  return parseFloat(((eq.repeatFail || 0) / eq.failCnt * 100).toFixed(0));
+}
+
+function getVibStatus(vib) {
+  if(vib >= 11.2) return 'crit';
+  if(vib >= 7.1) return 'warn';
+  if(vib >= 2.8) return 'ok';
+  return 'ok';
+}
+function getTempStatus(temp) {
+  if(temp >= 80) return 'crit';
+  if(temp >= 65) return 'warn';
+  return 'ok';
+}
+function getEquipStatus(eq) {
+  const vs = getVibStatus(eq.vib);
+  const ts = getTempStatus(eq.temp);
+  const oee = calcOEE(eq);
+  if(vs === 'crit' || ts === 'crit' || oee < 65) return 'crit';
+  if(vs === 'warn' || ts === 'warn' || oee < 80) return 'warn';
+  return 'ok';
+}
+
+// ═══════════════════════
+// NAVIGATION
+// ═══════════════════════
+const PAGE_NAMES = {
+  dashboard: 'Ana Dashboard', equipment: 'Ekipman Defteri',
+  config: 'Ekipman Konfigürasyonu', kna: 'KNA Motoru',
+  cost: 'Bakım Maliyeti', analytics: 'KPI Analitik', decision: 'Acil Duruş Kararı'
+};
+
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const target = document.getElementById('page-' + page);
+  if(target) target.classList.add('active');
+  const navTarget = document.getElementById('nav-' + page);
+  if(navTarget) navTarget.classList.add('active');
+  document.getElementById('current-page-name').textContent = PAGE_NAMES[page] || page;
+
+  // Re-render charts on tab change
+  if(page === 'analytics') { setTimeout(renderAnalyticsCharts, 50); }
+  if(page === 'dashboard') { setTimeout(renderDashboardCharts, 50); }
+  if(page === 'cost') { setTimeout(renderCostCharts, 50); }
+}
+
+// ═══════════════════════
+// CLOCK
+// ═══════════════════════
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const el = document.getElementById('clock-display');
+    if(el) el.textContent = now.toLocaleTimeString('tr-TR');
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ═══════════════════════
+// DASHBOARD RENDER
+// ═══════════════════════
+function renderDashboard() {
+  renderKPICards();
+  renderEquipTable();
+  renderOEEWidget();
+  renderAlarmList();
+  generateAlarms();
+  setTimeout(renderDashboardCharts, 100);
+}
+
+function renderKPICards() {
+  const grid = document.getElementById('kpi-grid');
+  if(!grid) return;
+
+  const oees = KDS.equipment.map(e => calcOEE(e));
+  const avgOEE = oees.length ? (oees.reduce((a,b)=>a+b,0)/oees.length).toFixed(1) : 0;
+  const mtbfs = KDS.equipment.map(e => calcMTBF(e));
+  const avgMTBF = mtbfs.length ? Math.round(mtbfs.reduce((a,b)=>a+b,0)/mtbfs.length) : 0;
+  const mttrs = KDS.equipment.map(e => calcMTTR(e));
+  const avgMTTR = mttrs.length ? (mttrs.reduce((a,b)=>a+b,0)/mttrs.length).toFixed(1) : 0;
+  const totalFail = KDS.equipment.reduce((a,e)=>a+(e.failCnt||0),0);
+  const totalRepeat = KDS.equipment.reduce((a,e)=>a+(e.repeatFail||0),0);
+  const repeatRate = totalFail ? Math.round(totalRepeat/totalFail*100) : 0;
+  const totalCost = KDS.equipment.reduce((a,e)=>a+(e.cost||0),0);
+
+  const kpis = [
+    { label:'OEE', val: avgOEE, unit:'%', trend: avgOEE >= 80 ? 'up' : 'down', trendTxt: avgOEE >= 80 ? '▲ Hedef >= 85%' : '▼ Hedef 85% altında', cls: avgOEE < 70 ? 'crit-card' : avgOEE < 80 ? 'warn-card' : '' },
+    { label:'MTBF', val: avgMTBF, unit:'saat', trend:'up', trendTxt:'▲ Ortalama değer', cls:'' },
+    { label:'MTTR', val: avgMTTR, unit:'saat', trend: avgMTTR > 4 ? 'down' : 'up', trendTxt: `${avgMTTR > 4 ? '▼ Hedef: <4 saat' : '▲ Hedef sağlanıyor'}`, cls: avgMTTR > 5 ? 'warn-card' : '' },
+    { label:'Tekrar Oranı', val: repeatRate, unit:'%', trend:'down', trendTxt:`▼ Hedef <15%`, cls: repeatRate > 20 ? 'crit-card' : repeatRate > 15 ? 'warn-card' : '' },
+    { label:'Bakım Maliyeti', val: (totalCost/1000).toFixed(0), unit:'K₺', trend: 'down', trendTxt:'Bu ay toplam', cls: totalCost > 400000 ? 'warn-card' : '' },
+  ];
+
+  grid.innerHTML = kpis.map(k => `
+    <div class="kpi-card ${k.cls}">
+      <div class="kpi-label">${k.label}</div>
+      <div><span class="kpi-val" id="kpi-${k.label}">${k.val}</span><span class="kpi-unit">${k.unit}</span></div>
+      <div class="kpi-trend trend-${k.trend}">${k.trendTxt}</div>
+    </div>
+  `).join('');
+
+  // Animate numbers
+  grid.querySelectorAll('.kpi-val').forEach(el => {
+    const end = parseFloat(el.textContent);
+    let start = 0; const dur = 800; const step = 16;
+    const inc = end / (dur/step);
+    const timer = setInterval(() => {
+      start = Math.min(start + inc, end);
+      el.textContent = Number.isInteger(end) ? Math.round(start) : start.toFixed(1);
+      if(start >= end) clearInterval(timer);
+    }, step);
+  });
+}
+
+function renderEquipTable() {
+  const tbody = document.getElementById('equip-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = KDS.equipment.map(eq => {
+    const status = getEquipStatus(eq);
+    const vs = getVibStatus(eq.vib);
+    const ts = getTempStatus(eq.temp);
+    const oee = calcOEE(eq);
+    const mtbf = calcMTBF(eq);
+    const vc = vs === 'crit' ? 'val-crit' : vs === 'warn' ? 'val-warn' : '';
+    const tc = ts === 'crit' ? 'val-crit' : ts === 'warn' ? 'val-warn' : '';
+    const oc = oee < 70 ? 'val-crit' : oee < 80 ? 'val-warn' : 'val-ok';
+    const catNames = {elek:'Elek',konveyor:'Konveyör',pompa:'Pompa',crusher:'Crusher',motor:'Motor',filtre:'Filtre',hidro:'Hidrosiklon',diger:'Diğer'};
+    return `<tr class="equip-row ${status}" onclick="openEditEquipModal('${eq.id}')">
+      <td><div class="equip-name-cell">${eq.name}</div><div class="equip-sub-cell">${catNames[eq.cat]||eq.cat} · ${eq.loc}</div></td>
+      <td class="td-right ${vc}">${eq.vib}<span style="font-size:10px;color:var(--text3)"> mm/s</span></td>
+      <td class="td-right ${tc}">${eq.temp}<span style="font-size:10px;color:var(--text3)"> °C</span></td>
+      <td class="td-right">${mtbf}<span style="font-size:10px;color:var(--text3)"> h</span></td>
+      <td class="td-right ${oc}">${oee}<span style="font-size:10px;color:var(--text3)"> %</span></td>
+      <td class="td-right"><span class="status-dot s-${status}"></span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderOEEWidget() {
+  const oees = KDS.equipment.map(e => calcOEE(e));
+  const avg = oees.length ? oees.reduce((a,b)=>a+b,0)/oees.length : 0;
+  const avails = KDS.equipment.map(e => calcAvailability(e));
+  const avgAvail = avails.length ? avails.reduce((a,b)=>a+b,0)/avails.length : 0;
+  const avgPerf = KDS.equipment.reduce((a,e)=>a+(e.perf||100),0) / (KDS.equipment.length||1);
+  const avgQual = KDS.equipment.reduce((a,e)=>a+(e.qual||100),0) / (KDS.equipment.length||1);
+
+  const bigEl = document.getElementById('oee-big-val');
+  if(bigEl) { bigEl.textContent = avg.toFixed(1) + '%'; bigEl.style.color = avg >= 80 ? 'var(--ok-text)' : avg >= 65 ? 'var(--warn-text)' : 'var(--crit-text)'; }
+
+  setTimeout(() => {
+    setOEEBar('avail-bar','avail-val', avgAvail);
+    setOEEBar('perf-bar','perf-val', avgPerf);
+    setOEEBar('qual-bar','qual-val', avgQual);
+  }, 200);
+}
+
+function setOEEBar(barId, valId, val) {
+  const bar = document.getElementById(barId);
+  const valEl = document.getElementById(valId);
+  if(bar) bar.style.width = Math.min(val, 100) + '%';
+  if(valEl) valEl.textContent = val.toFixed(0) + '%';
+}
+
+function renderAlarmList() {
+  generateAlarms();
+  const list = document.getElementById('alarm-list');
+  if(!list) return;
+  if(KDS.alarms.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text">Aktif alarm bulunmuyor</div></div>`;
+    return;
+  }
+  list.innerHTML = KDS.alarms.map(a => `
+    <div class="alarm-item ${a.p}">
+      <div class="alarm-top">
+        <span class="alarm-equip">${a.equipName}</span>
+        <span class="alarm-time">${a.time}</span>
+      </div>
+      <div class="alarm-desc">${a.desc}</div>
+      <div class="alarm-actions">
+        <button class="btn btn-sm btn-danger" onclick="navigate('kna')">🔍 KNA Başlat</button>
+        <button class="btn btn-sm" onclick="navigate('decision')">🚦 Karar Motoru</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderDashboardCharts() {
+  // MTBF Trend
+  const mtbfCtx = document.getElementById('mtbfChart');
+  if(mtbfCtx) {
+    if(KDS.charts.mtbf) { KDS.charts.mtbf.destroy(); }
+    KDS.charts.mtbf = new Chart(mtbfCtx, {
+      type:'line',
+      data:{
+        labels:['Oca','Şub','Mar','Nis','May','Haz'],
+        datasets:[{
+          label:'MTBF (saat)',
+          data:[272,285,291,298,305,Math.round(KDS.equipment.map(e=>calcMTBF(e)).reduce((a,b)=>a+b,0)/KDS.equipment.length)],
+          borderColor:'#388BFD', backgroundColor:'rgba(56,139,253,0.1)',
+          fill:true, tension:0.35, pointBackgroundColor:'#388BFD', pointRadius:5, pointHoverRadius:7,
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}, tooltip:{backgroundColor:'#1C2128',borderColor:'#30363D',borderWidth:1}},
+        scales:{
+          x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8D96A0',font:{size:11}}},
+          y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8D96A0',font:{size:11}},min:250}
+        }
+      }
+    });
+  }
+
+  // Cost Pie
+  const cpCtx = document.getElementById('costPieChart');
+  if(cpCtx) {
+    if(KDS.charts.costPie) KDS.charts.costPie.destroy();
+    KDS.charts.costPie = new Chart(cpCtx, {
+      type:'doughnut',
+      data:{
+        labels:['İşçilik','Yedek parça','Dış servis','Duruş kaybı'],
+        datasets:[{data:[38,31,18,13],backgroundColor:['#8B5CF6','#2EA043','#D29922','#DA3633'],borderWidth:3,borderColor:'#161B22'}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'62%'}
+    });
+  }
+
+  // Cost Bar
+  const cbCtx = document.getElementById('costBarChart');
+  if(cbCtx) {
+    if(KDS.charts.costBar) KDS.charts.costBar.destroy();
+    KDS.charts.costBar = new Chart(cbCtx, {
+      type:'bar',
+      data:{
+        labels:['Oca','Şub','Mar','Nis','May','Haz'],
+        datasets:[{
+          label:'Maliyet (K₺)',
+          data:[310,340,390,420,465,Math.round(KDS.equipment.reduce((a,e)=>a+(e.cost||0),0)/1000)],
+          backgroundColor:['rgba(56,139,253,0.5)','rgba(56,139,253,0.5)','rgba(210,153,34,0.5)','rgba(210,153,34,0.5)','rgba(218,54,51,0.6)','rgba(218,54,51,0.8)'],
+          borderRadius:4,
+        }]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1C2128'}},
+        scales:{
+          x:{grid:{display:false},ticks:{color:'#8D96A0',font:{size:11}}},
+          y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8D96A0',font:{size:11},callback:v=>v+'K'}}
+        }
+      }
+    });
+  }
+}
+
+// ═══════════════════════
+// EQUIPMENT REGISTRY
+// ═══════════════════════
+function renderEquipmentRegistry() {
+  const tbody = document.getElementById('equip-registry-tbody');
+  if(!tbody) return;
+  const search = document.getElementById('equip-search');
+  const q = search ? search.value.toLowerCase() : '';
+  const filtered = KDS.equipment.filter(e => e.name.toLowerCase().includes(q) || (e.loc||'').toLowerCase().includes(q));
+
+  if(filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">Ekipman bulunamadı</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(eq => {
+    const status = getEquipStatus(eq);
+    const vs = getVibStatus(eq.vib);
+    const ts = getTempStatus(eq.temp);
+    const oee = calcOEE(eq);
+    const mtbf = calcMTBF(eq);
+    const mttr = calcMTTR(eq);
+    const vc = vs === 'crit' ? 'val-crit' : vs === 'warn' ? 'val-warn' : 'val-ok';
+    const tc = ts === 'crit' ? 'val-crit' : ts === 'warn' ? 'val-warn' : '';
+    const oc = oee < 70 ? 'val-crit' : oee < 80 ? 'val-warn' : 'val-ok';
+    return `<tr class="equip-row ${status}">
+      <td><div class="equip-name-cell">${eq.name}</div><div class="equip-sub-cell">${eq.loc}</div></td>
+      <td class="td-right ${vc}">${eq.vib} <span style="font-size:10px;color:var(--text3)">mm/s</span></td>
+      <td class="td-right ${tc}">${eq.temp} <span style="font-size:10px;color:var(--text3)">°C</span></td>
+      <td class="td-right">${mtbf}</td>
+      <td class="td-right">${mttr}</td>
+      <td class="td-right ${oc}">${oee}%</td>
+      <td class="td-right" style="font-size:11px;color:var(--text2);">${eq.lastMaint || '—'}</td>
+      <td class="td-right">
+        <button class="btn btn-sm" onclick="openEditEquipModal('${eq.id}')">Düzenle</button>
+        <button class="btn btn-sm" onclick="navigate('config');selectConfigEquip('${eq.id}')">Konfigüre</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterEquipList() {
+  renderEquipmentRegistry();
+}
+
+// ═══════════════════════
+// EQUIPMENT MODAL
+// ═══════════════════════
+function openAddEquipModal() {
+  document.getElementById('equip-modal-title').textContent = 'Yeni Ekipman Ekle';
+  document.getElementById('equip-edit-id').value = '';
+  ['e-name','e-model','e-vib','e-temp','e-op-hours','e-fail-cnt','e-downtime','e-perf','e-qual','e-repeat-fail','e-cost'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  document.getElementById('e-cat').value = 'elek';
+  document.getElementById('e-loc').value = 'Saha A — Açık Ocak';
+  document.getElementById('e-last-maint').value = new Date().toISOString().split('T')[0];
+  document.getElementById('equip-calc-preview').style.display = 'none';
+  openModal('equip-modal');
+}
+
+function openEditEquipModal(id) {
+  const eq = KDS.equipment.find(e => e.id === id);
+  if(!eq) return;
+  document.getElementById('equip-modal-title').textContent = `${eq.name} — Düzenle`;
+  document.getElementById('equip-edit-id').value = id;
+  document.getElementById('e-name').value = eq.name || '';
+  document.getElementById('e-cat').value = eq.cat || 'diger';
+  document.getElementById('e-loc').value = eq.loc || '';
+  document.getElementById('e-model').value = eq.model || '';
+  document.getElementById('e-vib').value = eq.vib || '';
+  document.getElementById('e-temp').value = eq.temp || '';
+  document.getElementById('e-op-hours').value = eq.opHours || '';
+  document.getElementById('e-last-maint').value = eq.lastMaint || '';
+  document.getElementById('e-fail-cnt').value = eq.failCnt || '';
+  document.getElementById('e-downtime').value = eq.downtime || '';
+  document.getElementById('e-perf').value = eq.perf || '';
+  document.getElementById('e-qual').value = eq.qual || '';
+  document.getElementById('e-repeat-fail').value = eq.repeatFail || '';
+  document.getElementById('e-cost').value = eq.cost || '';
+  updateEquipCalcPreview();
+  openModal('equip-modal');
+}
+
+function checkVibThreshold() {
+  const vib = parseFloat(document.getElementById('e-vib').value);
+  const hint = document.getElementById('vib-hint');
+  if(isNaN(vib)) return;
+  const status = getVibStatus(vib);
+  const msgs = {ok:'✅ ISO 10816: Normal seviye', warn:'⚠️ ISO 10816: Uyarı seviyesi — yakında bakım planla', crit:'🔴 ISO 10816: KRİTİK — hemen müdahale gerekli'};
+  const colors = {ok:'var(--ok-text)', warn:'var(--warn-text)', crit:'var(--crit-text)'};
+  hint.textContent = msgs[status];
+  hint.style.color = colors[status];
+  updateEquipCalcPreview();
+}
+
+function checkTempThreshold() {
+  const temp = parseFloat(document.getElementById('e-temp').value);
+  const hint = document.getElementById('temp-hint');
+  if(isNaN(temp)) return;
+  const status = getTempStatus(temp);
+  const msgs = {ok:'✅ Normal sıcaklık aralığı', warn:'⚠️ Yüksek sıcaklık — yağlama kontrolü önerilir', crit:'🔴 KRİTİK sıcaklık — acil müdahale gerekli'};
+  const colors = {ok:'var(--ok-text)', warn:'var(--warn-text)', crit:'var(--crit-text)'};
+  hint.textContent = msgs[status];
+  hint.style.color = colors[status];
+}
+
+function updateEquipCalcPreview() {
+  const opH = parseFloat(document.getElementById('e-op-hours').value)||0;
+  const failCnt = parseInt(document.getElementById('e-fail-cnt').value)||0;
+  const downtime = parseFloat(document.getElementById('e-downtime').value)||0;
+  const perf = parseFloat(document.getElementById('e-perf').value)||100;
+  const qual = parseFloat(document.getElementById('e-qual').value)||100;
+
+  if(opH || failCnt || downtime) {
+    const mtbf = failCnt ? Math.round(opH / failCnt) : opH;
+    const mttr = failCnt ? parseFloat((downtime/failCnt).toFixed(1)) : 0;
+    const avail = (mtbf + mttr) > 0 ? (mtbf/(mtbf+mttr)*100).toFixed(1) : 100;
+    const oee = (avail/100 * perf/100 * qual/100 * 100).toFixed(1);
+    document.getElementById('equip-calc-text').innerHTML =
+      `🧮 <strong>Otomatik hesaplama:</strong> MTBF: <strong>${mtbf}h</strong> · MTTR: <strong>${mttr}h</strong> · Kullanılabilirlik: <strong>${avail}%</strong> · OEE: <strong>${oee}%</strong>`;
+    document.getElementById('equip-calc-preview').style.display = 'flex';
+  }
+}
+
+function saveEquipment() {
+  const name = document.getElementById('e-name').value.trim();
+  if(!name) { showToast('Ekipman adı zorunludur!', 'error'); return; }
+
+  const editId = document.getElementById('equip-edit-id').value;
+  const eq = {
+    id: editId || 'eq' + Date.now(),
+    name, cat: document.getElementById('e-cat').value,
+    loc: document.getElementById('e-loc').value,
+    model: document.getElementById('e-model').value,
+    vib: parseFloat(document.getElementById('e-vib').value)||0,
+    temp: parseFloat(document.getElementById('e-temp').value)||0,
+    opHours: parseInt(document.getElementById('e-op-hours').value)||0,
+    lastMaint: document.getElementById('e-last-maint').value,
+    failCnt: parseInt(document.getElementById('e-fail-cnt').value)||0,
+    downtime: parseFloat(document.getElementById('e-downtime').value)||0,
+    perf: parseFloat(document.getElementById('e-perf').value)||100,
+    qual: parseFloat(document.getElementById('e-qual').value)||100,
+    repeatFail: parseInt(document.getElementById('e-repeat-fail').value)||0,
+    cost: parseFloat(document.getElementById('e-cost').value)||0,
+  };
+
+  if(editId) {
+    const idx = KDS.equipment.findIndex(e => e.id === editId);
+    if(idx >= 0) KDS.equipment[idx] = eq;
+    showToast(`${name} güncellendi`, 'success');
+  } else {
+    KDS.equipment.push(eq);
+    showToast(`${name} eklendi`, 'success');
+  }
+
+  saveData();
+  generateAlarms();
+  renderDashboard();
+  renderEquipmentRegistry();
+  renderConfigEquipList();
+  renderDecisionEquipSelect();
+  closeModal('equip-modal');
+}
+
+function deleteEquipment(id) {
+  if(!confirm('Bu ekipmanı silmek istediğinize emin misiniz?')) return;
+  KDS.equipment = KDS.equipment.filter(e => e.id !== id);
+  saveData();
+  generateAlarms();
+  renderDashboard();
+  renderEquipmentRegistry();
+  renderConfigEquipList();
+  showToast('Ekipman silindi', 'warn');
+  closeModal('equip-modal');
+}
+
+// ═══════════════════════
+// CONFIG SCREEN
+// ═══════════════════════
+function renderConfigEquipList() {
+  const list = document.getElementById('config-equip-list');
+  if(!list) return;
+  const catIcons = {elek:'🔲',konveyor:'↔️',pompa:'💧',crusher:'⛏️',motor:'⚡',filtre:'🔵',hidro:'🌀',diger:'🔧'};
+  list.innerHTML = KDS.equipment.map(eq => `
+    <div class="config-equip-item ${KDS.selectedConfigEquip === eq.id ? 'selected':''}" onclick="selectConfigEquip('${eq.id}')">
+      <span style="font-size:18px">${catIcons[eq.cat]||'🔧'}</span>
+      <div>
+        <div class="cei-name">${eq.name}</div>
+        <div class="cei-cat">${eq.loc}</div>
+      </div>
+      <span class="status-dot s-${getEquipStatus(eq)}" style="margin-left:auto;"></span>
+    </div>
+  `).join('');
+}
+
+function selectConfigEquip(id) {
+  KDS.selectedConfigEquip = id;
+  renderConfigEquipList();
+  renderConfigPanel(id);
+}
+
+function renderConfigPanel(id) {
+  const eq = KDS.equipment.find(e => e.id === id);
+  if(!eq) return;
+  const panel = document.getElementById('config-panel');
+  KDS.pendingChanges[id] = KDS.pendingChanges[id] || {};
+
+  const sections = [
+    {
+      title: 'Kestirimci Bakım Parametreleri',
+      ref: 'MEH Predictive Maintenance — Sensör eşikleri',
+      params: [
+        { key:'vib', name:'Titreşim', desc:'ISO 10816 ölçüm değeri', unit:'mm/s', threshold:'Eşik: 11.2 mm/s', val: eq.vib },
+        { key:'temp', name:'Sıcaklık', desc:'Rulman/gövde sıcaklığı', unit:'°C', threshold:'Uyarı: 65°C', val: eq.temp },
+      ]
+    },
+    {
+      title: 'Çalışma & Arıza Verileri',
+      ref: 'MEH Sec.1 Ch.2 — MTBF/MTTR hesabı',
+      params: [
+        { key:'opHours', name:'Çalışma Saati', desc:'Toplam operasyon saati', unit:'saat', threshold:'—', val: eq.opHours },
+        { key:'failCnt', name:'Arıza Sayısı', desc:'Dönem içindeki toplam arıza', unit:'adet', threshold:'—', val: eq.failCnt },
+        { key:'downtime', name:'Duruş Süresi', desc:'Toplam duruş / bakım süresi', unit:'saat', threshold:'—', val: eq.downtime },
+        { key:'repeatFail', name:'Tekrar Eden Arıza', desc:'Kronik arıza sayısı', unit:'adet', threshold:'Hedef: 0', val: eq.repeatFail },
+      ]
+    },
+    {
+      title: 'OEE Bileşenleri',
+      ref: 'MEH Sec.2 Ch.3 — OEE = A × P × Q',
+      params: [
+        { key:'perf', name:'Performans Faktörü', desc:'Nominal hıza göre fiili üretim oranı', unit:'%', threshold:'Hedef: >90%', val: eq.perf },
+        { key:'qual', name:'Kalite Faktörü', desc:'Kaliteli ürün / toplam üretim', unit:'%', threshold:'Hedef: >95%', val: eq.qual },
+      ]
+    },
+    {
+      title: 'Maliyet Parametreleri',
+      ref: 'MEH Sec.3 — Maintenance Economics',
+      params: [
+        { key:'cost', name:'Aylık Bakım Maliyeti', desc:'Toplam aylık bakım gideri', unit:'₺', threshold:'—', val: eq.cost },
+      ]
+    },
+  ];
+
+  panel.innerHTML = sections.map(sec => `
+    <div class="config-section">
+      <div class="config-section-header">
+        <span class="config-section-title">${sec.title}</span>
+        <span class="config-section-ref">${sec.ref}</span>
+      </div>
+      <div class="config-params">
+        <div style="display:grid;grid-template-columns:200px 1fr 90px 80px 110px;gap:10px;padding:0 12px 4px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;">
+          <span>Parametre</span><span style="text-align:right">Mevcut Değer</span><span style="text-align:center">Birim</span><span style="text-align:center">Eşik</span><span style="text-align:center">İşlem</span>
+        </div>
+        ${sec.params.map(p => `
+          <div class="param-row" id="prow-${id}-${p.key}">
+            <div>
+              <div class="param-name">${p.name}</div>
+              <div class="param-desc">${p.desc}</div>
+            </div>
+            <input type="number" class="param-input" id="pinput-${id}-${p.key}" value="${p.val}" step="${p.key==='vib'||p.key==='downtime'||p.key==='cost'?'0.1':'1'}"
+              oninput="markParamChanged('${id}','${p.key}',this.value)">
+            <div class="param-unit">${p.unit}</div>
+            <div class="param-threshold">${p.threshold}</div>
+            <button class="send-btn" id="sendbtn-${id}-${p.key}" onclick="sendSingleParam('${id}','${p.key}')">⬆ Kaydet</button>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('') + `
+    <div class="send-all-bar">
+      <div class="send-all-info">
+        <strong>${eq.name}</strong> için tüm değişiklikler
+        <span class="changes-count" id="panel-changes-count" style="display:none">0</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="resetConfigPanel('${id}')">↺ Sıfırla</button>
+        <button class="btn btn-primary" onclick="sendAllParams('${id}')">⬆ Tümünü Kaydet</button>
+      </div>
+    </div>
+  `;
+}
+
+function markParamChanged(id, key, val) {
+  if(!KDS.pendingChanges[id]) KDS.pendingChanges[id] = {};
+  KDS.pendingChanges[id][key] = val;
+  const row = document.getElementById(`prow-${id}-${key}`);
+  if(row) row.classList.add('changed');
+  updateChangesCount();
+}
+
+function updateChangesCount() {
+  let total = 0;
+  Object.values(KDS.pendingChanges).forEach(changes => { total += Object.keys(changes).length; });
+  const ci = document.getElementById('changes-indicator');
+  const cc = document.getElementById('changes-count');
+  const pcc = document.getElementById('panel-changes-count');
+  if(total > 0) {
+    if(ci) { ci.style.display = 'flex'; ci.style.alignItems = 'center'; ci.style.gap = '4px'; }
+    if(cc) cc.textContent = total;
+    if(pcc) { pcc.style.display = 'inline-flex'; pcc.textContent = total; }
+  } else {
+    if(ci) ci.style.display = 'none';
+    if(pcc) pcc.style.display = 'none';
+  }
+}
+
+function sendSingleParam(id, key) {
+  const input = document.getElementById(`pinput-${id}-${key}`);
+  const btn = document.getElementById(`sendbtn-${id}-${key}`);
+  const row = document.getElementById(`prow-${id}-${key}`);
+  if(!input) return;
+
+  const eq = KDS.equipment.find(e => e.id === id);
+  if(!eq) return;
+  const numVal = parseFloat(input.value);
+  if(isNaN(numVal)) { showToast('Geçersiz değer', 'error'); return; }
+
+  eq[key] = numVal;
+  if(KDS.pendingChanges[id]) delete KDS.pendingChanges[id][key];
+  if(row) row.classList.remove('changed');
+  if(btn) { btn.textContent = '✓ Kaydedildi'; btn.classList.add('sent'); setTimeout(()=>{ btn.textContent='⬆ Kaydet'; btn.classList.remove('sent'); }, 2500); }
+
+  saveData();
+  updateChangesCount();
+  generateAlarms();
+  renderDashboard();
+  renderEquipmentRegistry();
+  showToast(`Parametre güncellendi`, 'success');
+}
+
+function sendAllParams(id) {
+  const eq = KDS.equipment.find(e => e.id === id);
+  if(!eq) return;
+  const changes = KDS.pendingChanges[id] || {};
+  let count = 0;
+  Object.entries(changes).forEach(([key, val]) => {
+    eq[key] = parseFloat(val) || 0;
+    const row = document.getElementById(`prow-${id}-${key}`);
+    const btn = document.getElementById(`sendbtn-${id}-${key}`);
+    if(row) row.classList.remove('changed');
+    if(btn) { btn.textContent = '✓ Kaydedildi'; btn.classList.add('sent'); setTimeout(()=>{ btn.textContent='⬆ Kaydet'; btn.classList.remove('sent'); }, 2500); }
+    count++;
+  });
+  KDS.pendingChanges[id] = {};
+  saveData();
+  updateChangesCount();
+  generateAlarms();
+  renderDashboard();
+  renderEquipmentRegistry();
+  showToast(`${count} parametre kaydedildi`, 'success');
+}
+
+function sendAllChanges() {
+  Object.keys(KDS.pendingChanges).forEach(id => sendAllParams(id));
+}
+
+function resetConfigPanel(id) {
+  const eq = KDS.equipment.find(e => e.id === id);
+  if(!eq) return;
+  KDS.pendingChanges[id] = {};
+  document.querySelectorAll(`[id^="pinput-${id}-"]`).forEach(input => {
+    const key = input.id.replace(`pinput-${id}-`, '');
+    if(eq[key] !== undefined) input.value = eq[key];
+  });
+  document.querySelectorAll(`[id^="prow-${id}-"]`).forEach(row => row.classList.remove('changed'));
+  updateChangesCount();
+  showToast('Değişiklikler sıfırlandı', 'warn');
+}
+
+// ═══════════════════════
+// KNA ENGINE
+// ═══════════════════════
+const KNA_STEPS = [
+  { id:'category', title:'Kategori Seçimi', icon:'📂' },
+  { id:'chronic', title:'Kronik mi?', icon:'🔄' },
+  { id:'condition', title:'Çalışma Koşulları', icon:'🔍' },
+  { id:'fivewhy', title:'5 Why Analizi', icon:'❓' },
+  { id:'fmea', title:'FMEA / RPN', icon:'📊' },
+  { id:'action', title:'Aksiyon Planı', icon:'✅' },
+];
+
+function initKNA() {
+  KDS.knaState = { step: 0, answers: {} };
+  renderKNAStepsTracker();
+  renderKNAPanel();
+}
+
+function resetKNA() {
+  KDS.knaState = { step: 0, answers: {} };
+  renderKNAStepsTracker();
+  renderKNAPanel();
+}
+
+function renderKNAStepsTracker() {
+  const tracker = document.getElementById('kna-steps-tracker');
+  if(!tracker) return;
+  tracker.innerHTML = KNA_STEPS.map((s, i) => {
+    const current = KDS.knaState.step;
+    const cls = i < current ? 'done' : i === current ? 'active' : '';
+    const val = KDS.knaState.answers[s.id];
+    return `<div class="kna-step-item">
+      <div class="step-num ${cls}">${i < current ? '✓' : i+1}</div>
+      <div class="step-info">
+        <div class="step-title ${cls}">${s.icon} ${s.title}</div>
+        ${val ? `<div class="step-val ${i<current?'done':''}">${typeof val === 'string' ? val.substring(0,40) : '—'}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderKNAPanel() {
+  const panel = document.getElementById('kna-panel');
+  if(!panel) return;
+  const step = KDS.knaState.step;
+  const answers = KDS.knaState.answers;
+
+  if(step === 0) {
+    panel.innerHTML = `
+      <div class="kna-section">
+        <div class="kna-section-header">
+          <span class="kna-section-icon">📂</span>
+          <span class="kna-section-title">Adım 1 — Arıza Kategorisini Seçin</span>
+        </div>
+        <div class="kna-section-body">
+          <div class="info-box" style="margin-bottom:14px;">
+            <span class="info-box-icon">ℹ️</span>
+            <span>RCM (Reliability Centered Maintenance) metodolojisine göre önce arıza fonksiyon kaybı kategorisini belirleyin. <em>MEH RCM Bölümü — Failure Mode Classification</em></span>
+          </div>
+          <div class="option-grid">
+            ${[
+              ['vibration','🔊','Titreşim Sorunu','Rulman, dengesizlik, uyuşturma'],
+              ['thermal','🌡️','Isı / Sıcaklık Sorunu','Aşırı ısınma, yağlama kaybı'],
+              ['mechanical','⚙️','Mekanik Arıza','Çatlak, kırık, aşınma'],
+              ['electrical','⚡','Elektrik Arızası','Motor, sürücü, kablo'],
+              ['hydraulic','💧','Hidrolik/Pnömatik','Basınç kaybı, sızıntı'],
+              ['process','🏭','Proses Kaynaklı','Yüksek yük, besleme sorunu'],
+            ].map(([key,icon,title,sub]) => `
+              <div class="option-btn ${answers.category===key?'selected':''}" onclick="knaAnswer('category','${key}','${title}')">
+                <span class="option-icon">${icon}</span>
+                <div><div style="font-weight:600">${title}</div><div style="font-size:10px;color:var(--text3)">${sub}</div></div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-top:14px;">
+            <label class="form-label" style="margin-bottom:6px;display:block;">Etkilenen Ekipman</label>
+            <select id="kna-equip-sel" class="form-control" style="max-width:320px;">
+              <option value="">— Ekipman seçin —</option>
+              ${KDS.equipment.map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="knaNext()" ${answers.category?'':'disabled'}>Devam →</button>
+      </div>`;
+  }
+  else if(step === 1) {
+    panel.innerHTML = `
+      <div class="kna-section">
+        <div class="kna-section-header">
+          <span class="kna-section-icon">🔄</span>
+          <span class="kna-section-title">Adım 2 — Kronik Arıza Kontrolü</span>
+        </div>
+        <div class="kna-section-body">
+          <div class="warn-box" style="margin-bottom:14px;">
+            <span style="font-size:14px">⚠️</span>
+            <span><strong>Kronik arıza tespiti kritiktir.</strong> Aynı arıza 30 gün içinde 2+ kez tekrar ediyorsa kronik kabul edilir ve köklü çözüm gerektirir. <em>MEH — Failure Elimination</em></span>
+          </div>
+          <div class="option-grid">
+            ${[
+              ['first','🆕','İlk kez','Bu arıza tipi daha önce gerçekleşmedi'],
+              ['repeat','🔁','Tekrar (2–3. Kez)','30 gün içinde 2–3 kez meydana geldi'],
+              ['chronic','🔴','Kronik (4+ kez)','Düzenli olarak tekrarlayan arıza'],
+              ['unknown','❓','Bilinmiyor','Arıza kayıtları yetersiz'],
+            ].map(([key,icon,title,sub]) => `
+              <div class="option-btn ${answers.chronic===key?'selected':''}" onclick="knaAnswer('chronic','${key}','${title}')">
+                <span class="option-icon">${icon}</span>
+                <div><div style="font-weight:600">${title}</div><div style="font-size:10px;color:var(--text3)">${sub}</div></div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <button class="btn" onclick="knaPrev()">← Geri</button>
+        <button class="btn btn-primary" onclick="knaNext()" ${answers.chronic?'':'disabled'}>Devam →</button>
+      </div>`;
+  }
+  else if(step === 2) {
+    panel.innerHTML = `
+      <div class="kna-section">
+        <div class="kna-section-header">
+          <span class="kna-section-icon">🔍</span>
+          <span class="kna-section-title">Adım 3 — Çalışma Koşulları Değerlendirmesi</span>
+        </div>
+        <div class="kna-section-body">
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            ${[
+              ['operating_cond','Çalışma koşulları değişti mi?','Son bakımdan bu yana yük, hız veya besleme değişti mi?'],
+              ['recent_maint','Son bakım düzgün yapıldı mı?','Yağlama, sıkma momentleri, hizalama kontrol edildi mi?'],
+              ['lubrication','Yağlama durumu','Yağ seviyesi ve kalitesi kontrol edildi mi?'],
+              ['alignment','Hizalama kontrolü','Motor-şaft hizalaması ölçüldü mü?'],
+            ].map(([key, q, hint]) => `
+              <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px;">
+                <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;">${q}</div>
+                <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">${hint}</div>
+                <div style="display:flex;gap:6px;">
+                  ${['Evet','Hayır','Bilinmiyor'].map(opt => `
+                    <button class="btn btn-sm ${answers[key]===opt?'btn-primary':''}" onclick="knaAnswer('${key}','${opt}','${opt}')">${opt}</button>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <button class="btn" onclick="knaPrev()">← Geri</button>
+        <button class="btn btn-primary" onclick="knaNext()">Devam →</button>
+      </div>`;
+  }
+  else if(step === 3) {
+    panel.innerHTML = `
+      <div class="kna-section">
+        <div class="kna-section-header">
+          <span class="kna-section-icon">❓</span>
+          <span class="kna-section-title">Adım 4 — 5 Why (5 Neden) Analizi</span>
+        </div>
+        <div class="kna-section-body">
+          <div class="info-box" style="margin-bottom:14px;">
+            <span class="info-box-icon">ℹ️</span>
+            <span>Her "Neden?" sorusu bir öncekinin cevabını sorgular. Kök sebebe ulaşmak için en az 5 katman sorgulanmalıdır. <em>Sakichi Toyoda — Toyota Production System</em></span>
+          </div>
+          <div style="margin-bottom:10px;font-size:12px;font-weight:600;color:var(--text);padding:8px 10px;background:var(--bg3);border-radius:6px;">
+            Sorun: <span style="color:var(--warn-text)">${answers.category || 'Seçilmemiş'} arızası</span>
+          </div>
+          ${[1,2,3,4,5].map(n => `
+            <div class="why-row">
+              <label class="why-label"><span class="why-num">${n}</span> ${n}. Neden?</label>
+              <textarea class="why-input" id="why-${n}" placeholder="${n===1?'Neden arıza meydana geldi?':n===2?'Neden (1. cevabı) oluştu?':n===3?'Neden (2. cevabı) oluştu?':n===4?'Neden (3. cevabı) oluştu?':'Kök neden nedir?'}">${answers['why'+n]||''}</textarea>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <button class="btn" onclick="knaPrev()">← Geri</button>
+        <button class="btn btn-primary" onclick="saveWhyAndNext()">Devam →</button>
+      </div>`;
+  }
+  else if(step === 4) {
+    const catLabels = {vibration:'Titreşim',thermal:'Sıcaklık',mechanical:'Mekanik',electrical:'Elektrik',hydraulic:'Hidrolik',process:'Proses'};
+    const failureModes = {
+      vibration:['Rulman aşınması','Rotor dengesizliği','Şaft eğriliği','Uyuşturma hatası'],
+      thermal:['Yağlama yetersizliği','Soğutma arızası','Aşırı yük','Tıkanma'],
+      mechanical:['Malzeme yorulması','Aşınma','Korozyon','Montaj hatası'],
+      electrical:['Motor sargı arızası','Sürücü hatası','Kablo hasarı','Topraklama sorunu'],
+      hydraulic:['Sızdırmazlık elemanı hasarı','Pompa aşınması','Filtre tıkanması','Basınç ayar sorunu'],
+      process:['Aşırı besleme','Yabancı cisim','Hammadde değişimi','Korozif ortam'],
+    };
+    const modes = failureModes[answers.category] || failureModes.mechanical;
+
+    panel.innerHTML = `
+      <div class="kna-section">
+        <div class="kna-section-header">
+          <span class="kna-section-icon">📊</span>
+          <span class="kna-section-title">Adım 5 — FMEA / RPN Analizi</span>
+        </div>
+        <div class="kna-section-body">
+          <div class="info-box" style="margin-bottom:14px;">
+            <span class="info-box-icon">📐</span>
+            <span><strong>RPN = Şiddet (S) × Olasılık (O) × Tespit Edilebilirlik (D)</strong><br><em>MEH FMEA Bölümü — Risk Priority Number &lt;100: Kabul · 100–200: Planlı · >200: Acil</em></span>
+          </div>
+          <div style="overflow-x:auto;">
+          <table class="fmea-table">
+            <thead>
+              <tr>
+                <th style="text-align:left">Arıza Modu</th>
+                <th>Etki</th>
+                <th>Şiddet (1–10)</th>
+                <th>Olasılık (1–10)</th>
+                <th>Tespit (1–10)</th>
+                <th>RPN</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${modes.map((mode, i) => `
+                <tr>
+                  <td>${mode}</td>
+                  <td style="font-size:10px;color:var(--text2)">Üretim durması / Ekipman hasarı</td>
+                  <td><input type="number" class="rpn-input" id="fmea-s-${i}" min="1" max="10" value="${Math.floor(Math.random()*5)+3}" oninput="calcRPN(${i})"></td>
+                  <td><input type="number" class="rpn-input" id="fmea-o-${i}" min="1" max="10" value="${Math.floor(Math.random()*4)+2}" oninput="calcRPN(${i})"></td>
+                  <td><input type="number" class="rpn-input" id="fmea-d-${i}" min="1" max="10" value="${Math.floor(Math.random()*4)+3}" oninput="calcRPN(${i})"></td>
+                  <td><span class="fmea-score" id="fmea-rpn-${i}">—</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          </div>
+          <div id="fmea-summary" style="margin-top:12px;"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <button class="btn" onclick="knaPrev()">← Geri</button>
+        <button class="btn btn-primary" onclick="knaNext()">Aksiyon Planı →</button>
+      </div>`;
+
+    setTimeout(() => modes.forEach((_, i) => calcRPN(i)), 50);
+  }
+  else if(step === 5) {
+    const catRec = {
+      vibration:['Rulman değişimi — SKF / FAG standardına göre', 'Balans ölçümü ve düzeltme (ISO 1940 G6.3)', 'Şaft hizalama kontrolü (lazer hizalama)', 'Titreşim izleme aralığını kısalt (günlük ölçüm)'],
+      thermal:['Yağlama sistemi denetimi — yağ kalitesi ve viskozite kontrolü', 'Soğutma kanalları temizliği', 'Termografi ile sıcak nokta tespiti', 'Yük profili incelemesi'],
+      mechanical:['Hasarlı bileşen değişimi', 'Torque değerlerini kontrol et (sıkma momentleri)', 'Malzeme yorulma analizi — çatlak yayılım hız tespiti', 'Yedek parça stok güncelleme'],
+      electrical:['Motor izolasyon ölçümü (Megger testi)', 'Sürücü parametre kontrolü', 'Topraklama direnci ölçümü', 'Termik röle ayar kontrolü'],
+      hydraulic:['Sızdırmazlık elemanı kit değişimi', 'Hydraulik yağ analizi (viskozite, kirlilik)', 'Sistem basıncı ve akış ölçümü', 'Filtre değişimi / temizliği'],
+      process:['Besleme debisi kalibrasyonu', 'Yabancı cisim filtreleme önlemi', 'Hammadde kalite kontrol',  'Kademeli yük artışı protokolü'],
+    };
+    const recs = catRec[answers.category] || catRec.mechanical;
+    const isChronic = answers.chronic === 'chronic' || answers.chronic === 'repeat';
+
+    panel.innerHTML = `
+      <div class="kna-section">
+        <div class="kna-section-header">
+          <span class="kna-section-icon">✅</span>
+          <span class="kna-section-title">Adım 6 — Aksiyon Planı & Öneriler</span>
+        </div>
+        <div class="kna-section-body">
+          ${isChronic ? `<div class="warn-box" style="margin-bottom:14px;">
+            <span style="font-size:14px">🔴</span>
+            <strong>Kronik arıza tespit edildi.</strong> Bu ekipman için RCM tabanlı yeniden tasarım veya değişim analizi (LCC) önerilir. MEH — Failure Elimination Bölümü
+          </div>` : ''}
+          <div class="action-plan">
+            <div class="action-plan-title">📋 Düzeltici Aksiyon Listesi — ${answers.category} kategorisi</div>
+            ${recs.map(r => `<div class="action-item"><span class="action-check">▶</span><span>${r}</span></div>`).join('')}
+          </div>
+          <div style="margin-top:16px;">
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px;">5 Why Özeti</div>
+            ${[1,2,3,4,5].map(n => answers['why'+n] ? `
+              <div style="display:flex;gap:8px;margin-bottom:6px;font-size:11px;">
+                <span class="why-num">${n}</span>
+                <span style="color:var(--text2)">${answers['why'+n]}</span>
+              </div>
+            ` : '').join('')}
+          </div>
+          <div style="margin-top:14px;display:flex;gap:8px;">
+            <button class="btn btn-success" onclick="navigate('cost');openAddWorkOrderModal()">➕ İş Emri Oluştur</button>
+            <button class="btn" onclick="exportKNA()">📥 Rapor İndir</button>
+            <button class="btn" onclick="resetKNA()">↺ Yeni Analiz</button>
+          </div>
+        </div>
+      </div>`;
+  }
+}
+
+function calcRPN(i) {
+  const s = parseInt(document.getElementById(`fmea-s-${i}`)?.value)||1;
+  const o = parseInt(document.getElementById(`fmea-o-${i}`)?.value)||1;
+  const d = parseInt(document.getElementById(`fmea-d-${i}`)?.value)||1;
+  const rpn = s * o * d;
+  const el = document.getElementById(`fmea-rpn-${i}`);
+  if(el) {
+    el.textContent = rpn;
+    el.className = 'fmea-score ' + (rpn > 200 ? 'high' : rpn > 100 ? 'med' : 'low');
+  }
+}
+
+function knaAnswer(key, val, label) {
+  KDS.knaState.answers[key] = label || val;
+  renderKNAPanel();
+  renderKNAStepsTracker();
+}
+
+function knaNext() {
+  if(KDS.knaState.step < KNA_STEPS.length - 1) {
+    KDS.knaState.step++;
+    renderKNAStepsTracker();
+    renderKNAPanel();
+  }
+}
+function knaPrev() {
+  if(KDS.knaState.step > 0) {
+    KDS.knaState.step--;
+    renderKNAStepsTracker();
+    renderKNAPanel();
+  }
+}
+function saveWhyAndNext() {
+  [1,2,3,4,5].forEach(n => {
+    const el = document.getElementById(`why-${n}`);
+    if(el) KDS.knaState.answers['why'+n] = el.value;
+  });
+  knaNext();
+}
+function exportKNA() {
+  const a = KDS.knaState.answers;
+  const text = `KNA RAPORU\n${'='.repeat(40)}\nKategori: ${a.category||'—'}\nKronik Durum: ${a.chronic||'—'}\n\n5 WHY ANALİZİ\n${[1,2,3,4,5].map(n=>a['why'+n]?`${n}. ${a['why'+n]}`:'').filter(Boolean).join('\n')}\n\nTarih: ${new Date().toLocaleDateString('tr-TR')}`;
+  const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a2 = document.createElement('a'); a2.href = url; a2.download = 'KNA_Raporu.txt'; a2.click();
+}
+
+// ═══════════════════════
+// COST MODULE
+// ═══════════════════════
+function renderCostPage() {
+  renderCostSummary();
+  renderWorkOrderTable();
+  setTimeout(renderCostCharts, 100);
+}
+
+function renderCostSummary() {
+  const grid = document.getElementById('cost-summary-grid');
+  if(!grid) return;
+
+  const allPM = KDS.workOrders.filter(w => w.type === 'PM').reduce((a,w)=>a+(w.cost||0),0);
+  const allCM = KDS.workOrders.filter(w => w.type === 'CM').reduce((a,w)=>a+(w.cost||0),0);
+  const totalCost = allPM + allCM + KDS.workOrders.filter(w=>w.type==='PdM').reduce((a,w)=>a+(w.cost||0),0);
+  const pmcm = allCM > 0 ? (allPM / allCM).toFixed(1) : '∞';
+  const totalLabor = KDS.workOrders.reduce((a,w)=>a+(w.labor||0),0);
+  const totalParts = KDS.workOrders.reduce((a,w)=>a+(w.parts||0),0);
+
+  grid.innerHTML = [
+    { label:'Toplam Bakım Maliyeti', val: (totalCost/1000).toFixed(0), unit:'K₺', sub:'Tüm iş emirleri' },
+    { label:'PM Maliyeti (Planlı)', val: (allPM/1000).toFixed(0), unit:'K₺', sub:'Önleyici bakım gideri' },
+    { label:'CM Maliyeti (Arıza)', val: (allCM/1000).toFixed(0), unit:'K₺', sub:'Reaktif bakım gideri' },
+    { label:'PM/CM Oranı', val: pmcm, unit:':1', sub: parseFloat(pmcm) >= 3 ? '✅ Hedef sağlanıyor' : '⚠️ Hedef: >3:1', },
+  ].map(c => `
+    <div class="cost-card">
+      <div class="cost-label">${c.label}</div>
+      <div><span class="cost-val">${c.val}</span><span class="cost-unit"> ${c.unit}</span></div>
+      <div class="cost-sub">${c.sub}</div>
+    </div>
+  `).join('');
+
+  // PM/CM dial
+  const pmcmDsp = document.getElementById('pmcm-display');
+  if(pmcmDsp) {
+    const ratio = parseFloat(pmcm) || 0;
+    const isGood = ratio >= 3;
+    pmcmDsp.innerHTML = `
+      <div style="text-align:center;padding:20px;">
+        <div style="font-size:56px;font-weight:700;color:${isGood?'var(--ok-text)':'var(--crit-text)'}">${pmcm}</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-top:6px;">PM/CM Oranı</div>
+        <div class="badge ${isGood?'badge-ok':'badge-crit'}" style="margin-top:10px;">${isGood?'✅ Hedef sağlanıyor':'❌ Oran düşük — CM maliyetleri yüksek'}</div>
+        <div style="margin-top:16px;font-size:11px;color:var(--text3);">PM Toplam: ${(allPM/1000).toFixed(0)}K₺ · CM Toplam: ${(allCM/1000).toFixed(0)}K₺</div>
+      </div>`;
+  }
+}
+
+function renderWorkOrderTable() {
+  const tbody = document.getElementById('work-order-tbody');
+  if(!tbody) return;
+  const filter = document.getElementById('wo-filter-type')?.value || '';
+  const filtered = filter ? KDS.workOrders.filter(w => w.type === filter) : KDS.workOrders;
+
+  const statusMap = { open:['badge-crit','Açık'], inprogress:['badge-warn','Devam Ediyor'], done:['badge-ok','Tamamlandı'] };
+  const typeMap = { PM:['badge-ok','PM'], CM:['badge-crit','CM'], PdM:['badge-info','PdM'] };
+
+  tbody.innerHTML = filtered.map((wo, i) => {
+    const eq = KDS.equipment.find(e => e.id === wo.equip);
+    const [scls, slbl] = statusMap[wo.status] || ['badge-info', wo.status];
+    const [tcls, tlbl] = typeMap[wo.type] || ['badge-info', wo.type];
+    return `<tr>
+      <td style="font-family:monospace;font-size:11px;color:var(--text3)">WO-${String(i+1).padStart(4,'0')}</td>
+      <td style="font-weight:500;color:var(--text)">${eq ? eq.name : wo.equip}</td>
+      <td><span class="badge ${tcls}">${tlbl}</span></td>
+      <td style="color:var(--text2);font-size:11px;max-width:200px">${wo.desc}</td>
+      <td class="td-right" style="font-weight:600">${(wo.cost||0).toLocaleString('tr-TR')} ₺</td>
+      <td class="td-right">${wo.duration||0} h</td>
+      <td style="font-size:11px;color:var(--text2)">${wo.date||'—'}</td>
+      <td><span class="badge ${scls}">${slbl}</span></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">İş emri bulunamadı</div></div></td></tr>`;
+}
+
+function renderCostCharts() {
+  const catCtx = document.getElementById('costCatChart');
+  if(catCtx) {
+    if(KDS.charts.costCat) KDS.charts.costCat.destroy();
+    const labor = KDS.workOrders.reduce((a,w)=>a+(w.labor||0),0);
+    const parts = KDS.workOrders.reduce((a,w)=>a+(w.parts||0),0);
+    const ext = KDS.workOrders.reduce((a,w)=>a+(w.ext||0),0);
+    const other = KDS.workOrders.reduce((a,w)=>a+(w.cost||0)-(w.labor||0)-(w.parts||0)-(w.ext||0),0);
+    KDS.charts.costCat = new Chart(catCtx, {
+      type:'doughnut',
+      data:{
+        labels:['İşçilik','Yedek Parça','Dış Servis','Diğer'],
+        datasets:[{data:[labor,parts,ext,Math.max(0,other)],backgroundColor:['#8B5CF6','#2EA043','#D29922','#388BFD'],borderWidth:3,borderColor:'#161B22'}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8D96A0',font:{size:11}}},tooltip:{backgroundColor:'#1C2128'}},cutout:'55%'}
+    });
+  }
+}
+
+function openAddWorkOrderModal() {
+  const woEquip = document.getElementById('wo-equip');
+  if(woEquip) {
+    woEquip.innerHTML = '<option value="">— Ekipman seçin —</option>' + KDS.equipment.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+  }
+  document.getElementById('wo-date').value = new Date().toISOString().split('T')[0];
+  openModal('wo-modal');
+}
+
+function saveWorkOrder() {
+  const equip = document.getElementById('wo-equip').value;
+  const desc = document.getElementById('wo-desc').value.trim();
+  if(!equip || !desc) { showToast('Ekipman ve açıklama zorunludur!', 'error'); return; }
+  KDS.workOrders.unshift({
+    id: 'wo' + Date.now(),
+    equip, type: document.getElementById('wo-type').value,
+    desc, cost: parseFloat(document.getElementById('wo-cost').value)||0,
+    labor: parseFloat(document.getElementById('wo-labor').value)||0,
+    parts: parseFloat(document.getElementById('wo-parts').value)||0,
+    ext: parseFloat(document.getElementById('wo-ext').value)||0,
+    duration: parseFloat(document.getElementById('wo-duration').value)||0,
+    date: document.getElementById('wo-date').value,
+    status: document.getElementById('wo-status').value,
+  });
+  saveData();
+  renderCostPage();
+  closeModal('wo-modal');
+  showToast('İş emri oluşturuldu', 'success');
+}
+
+// ═══════════════════════
+// ANALYTICS
+// ═══════════════════════
+function renderAnalytics() {
+  renderHeatmap();
+  setTimeout(renderAnalyticsCharts, 100);
+}
+
+function renderHeatmap() {
+  const wrap = document.getElementById('heatmap-wrap');
+  if(!wrap) return;
+  const months = ['Oca','Şub','Mar','Nis','May','Haz'];
+  const hmClass = val => val >= 90 ? 'hm-4' : val >= 80 ? 'hm-3' : val >= 70 ? 'hm-2' : val >= 60 ? 'hm-1' : 'hm-0';
+
+  wrap.innerHTML = `<table class="heatmap">
+    <thead><tr>
+      <th style="text-align:left">Ekipman</th>
+      ${months.map(m=>`<th>${m}</th>`).join('')}
+    </tr></thead>
+    <tbody>
+    ${KDS.equipment.map(eq => {
+      const baseOEE = calcOEE(eq);
+      const vals = months.map((_,i) => Math.max(40, Math.min(99, baseOEE + (Math.random()*10-5)*(1-i*0.05))));
+      return `<tr>
+        <td style="font-size:11px;font-weight:500;color:var(--text);padding:4px 8px;white-space:nowrap;">${eq.name}</td>
+        ${vals.map(v=>`<td class="${hmClass(Math.round(v))}">${Math.round(v)}%</td>`).join('')}
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+}
+
+function renderAnalyticsCharts() {
+  const months = ['Oca','Şub','Mar','Nis','May','Haz'];
+  const oeeData = [71.2, 72.0, 73.5, 72.8, 73.9, parseFloat((KDS.equipment.map(e=>calcOEE(e)).reduce((a,b)=>a+b,0)/KDS.equipment.length).toFixed(1))];
+  const mtbfData = KDS.equipment.map(e=>calcMTBF(e));
+  const mttrData = KDS.equipment.map(e=>calcMTTR(e));
+
+  const opts = (min) => ({
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#8D96A0',font:{size:11}}},tooltip:{backgroundColor:'#1C2128',borderColor:'#30363D',borderWidth:1}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8D96A0',font:{size:11}}},
+      y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8D96A0',font:{size:11}},min}
+    }
+  });
+
+  const oc = document.getElementById('oeeAnalChart');
+  if(oc) {
+    if(KDS.charts.oeeAnal) KDS.charts.oeeAnal.destroy();
+    KDS.charts.oeeAnal = new Chart(oc, {
+      type:'line',
+      data:{labels:months,datasets:[
+        {label:'OEE (%)',data:oeeData,borderColor:'#388BFD',backgroundColor:'rgba(56,139,253,0.1)',fill:true,tension:0.4,pointRadius:4},
+        {label:'Hedef (85%)',data:[85,85,85,85,85,85],borderColor:'rgba(46,160,67,0.5)',borderDash:[5,5],pointRadius:0,fill:false},
+      ]},
+      options:opts(60)
+    });
+  }
+
+  const mc = document.getElementById('mtbfMttrChart');
+  if(mc) {
+    if(KDS.charts.mtbfMttr) KDS.charts.mtbfMttr.destroy();
+    KDS.charts.mtbfMttr = new Chart(mc, {
+      type:'bar',
+      data:{
+        labels:KDS.equipment.map(e=>e.name.split(' ').slice(0,2).join(' ')),
+        datasets:[
+          {label:'MTBF (h)',data:mtbfData,backgroundColor:'rgba(56,139,253,0.7)',borderRadius:4},
+          {label:'MTTR (h)',data:mttrData,backgroundColor:'rgba(218,54,51,0.6)',borderRadius:4},
+        ]
+      },
+      options:{...opts(0),plugins:{legend:{labels:{color:'#8D96A0',font:{size:11}}}}}
+    });
+  }
+
+  const rrc = document.getElementById('repeatRateChart');
+  if(rrc) {
+    if(KDS.charts.repeatRate) KDS.charts.repeatRate.destroy();
+    KDS.charts.repeatRate = new Chart(rrc, {
+      type:'bar',
+      data:{
+        labels:KDS.equipment.map(e=>e.name.split(' ').slice(0,2).join(' ')),
+        datasets:[{
+          label:'Tekrar Oranı (%)',
+          data:KDS.equipment.map(e=>calcRepeatRate(e)),
+          backgroundColor: KDS.equipment.map(e=>calcRepeatRate(e)>20?'rgba(218,54,51,0.7)':calcRepeatRate(e)>10?'rgba(210,153,34,0.7)':'rgba(46,160,67,0.6)'),
+          borderRadius:4,
+        }]
+      },
+      options:{...opts(0),plugins:{legend:{display:false}}}
+    });
+  }
+
+  const ctc = document.getElementById('costTrendAnalChart');
+  if(ctc) {
+    if(KDS.charts.costTrendAnal) KDS.charts.costTrendAnal.destroy();
+    const base = Math.round(KDS.equipment.reduce((a,e)=>a+(e.cost||0),0)/1000);
+    KDS.charts.costTrendAnal = new Chart(ctc, {
+      type:'line',
+      data:{labels:months,datasets:[
+        {label:'Toplam Bakım Maliyeti (K₺)',data:[Math.round(base*0.6),Math.round(base*0.68),Math.round(base*0.77),Math.round(base*0.85),Math.round(base*0.93),base],borderColor:'#D29922',backgroundColor:'rgba(210,153,34,0.1)',fill:true,tension:0.4,pointRadius:4},
+      ]},
+      options:opts(0)
+    });
+  }
+}
+
+function setAnalyticsPeriod(el, p) {
+  document.querySelectorAll('#page-analytics .filter-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  setTimeout(renderAnalyticsCharts, 50);
+}
+
+// ═══════════════════════
+// RISK MATRIX
+// ═══════════════════════
+const RISK_LABELS = ['Çok Düşük','Düşük','Orta','Yüksek','Çok Yüksek'];
+const SEV_LABELS = ['Önemsiz','Küçük','Orta','Büyük','Felaket'];
+const RISK_MATRIX_DATA = [
+  ['low','low','med','high','crit'],
+  ['low','med','med','high','crit'],
+  ['low','med','high','high','crit'],
+  ['med','med','high','crit','crit'],
+  ['med','high','crit','crit','crit'],
+];
+
+function renderRiskMatrix() {
+  const wrap = document.getElementById('risk-matrix-wrap');
+  if(!wrap) return;
+
+  const labels = {low:'Düşük',med:'Orta',high:'Yüksek',crit:'Kritik'};
+  const scores = {low:1,med:2,high:3,crit:4};
+
+  let html = `<table class="risk-matrix"><thead><tr><th class="axis-label">Olasılık ↕ / Şiddet →</th>`;
+  SEV_LABELS.forEach(s => { html += `<th>${s}</th>`; });
+  html += `</tr></thead><tbody>`;
+
+  for(let r=4; r>=0; r--) {
+    html += `<tr><th>${RISK_LABELS[r]}</th>`;
+    for(let c=0; c<5; c++) {
+      const cls = RISK_MATRIX_DATA[r][c];
+      const isSel = KDS.selectedRiskCell && KDS.selectedRiskCell[0]===r && KDS.selectedRiskCell[1]===c;
+      html += `<td class="risk-cell risk-${cls} ${isSel?'selected':''}" onclick="selectRiskCell(${r},${c},'${cls}')">
+        <span class="risk-cell-score">${scores[cls]}</span>
+        <span class="risk-cell-label">${labels[cls]}</span>
+      </td>`;
+    }
+    html += `</tr>`;
+  }
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+
+function selectRiskCell(r, c, level) {
+  KDS.selectedRiskCell = [r, c, level];
+  renderRiskMatrix();
+}
+
+function renderDecisionEquipSelect() {
+  const sel = document.getElementById('dec-equip');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Ekipman seçin —</option>' + KDS.equipment.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+}
+
+function evaluateDecision() {
+  const panel = document.getElementById('decision-result');
+  if(!panel) return;
+
+  const riskCell = KDS.selectedRiskCell;
+  const safety = document.getElementById('dec-safety').value;
+  const prod = document.getElementById('dec-prod').value;
+  const equipId = document.getElementById('dec-equip').value;
+  const failType = document.getElementById('dec-type').value;
+  const eq = KDS.equipment.find(e => e.id === equipId);
+
+  if(!riskCell) { showToast('Lütfen risk matrisinden bir hücre seçin', 'warn'); return; }
+
+  const level = riskCell[2];
+  const safetyRisk = safety !== 'no';
+
+  let decision, dCls;
+  if(level === 'crit' || safetyRisk || (level === 'high' && prod === 'full')) {
+    decision = 'stop'; 
+  } else if(level === 'high' || (level === 'med' && prod !== 'none')) {
+    decision = 'warn';
+  } else {
+    decision = 'go';
+  }
+
+  const decInfo = {
+    stop: {
+      cls:'stop', icon:'🔴', text:'ACİL DURUŞ GEREKLİ',
+      sub:`${safetyRisk ? '⚠️ Güvenlik riski tespit edildi — ' : ''}Risk seviyesi: ${riskCell[2].toUpperCase()}. Üretimi hemen durdurun.`,
+      actions:[
+        'Ekipmanı derhal devre dışı bırakın',
+        'Güvenlik prosedürlerini (LOTO) uygulayın',
+        'Bakım ekibini ve amiri derhal bilgilendirin',
+        safetyRisk ? 'Çalışma bölgesini güvenli alan olarak işaretleyin' : 'Arıza nedenini tespit etmeden yeniden başlatmayın',
+        `KNA analizi başlatın — ${failType} kategorisi`,
+      ]
+    },
+    warn: {
+      cls:'warn', icon:'🟡', text:'PLANLI BAKIM PROGRAMLAYINv',
+      sub:`Risk seviyesi: ${riskCell[2].toUpperCase()}. ${prod==='full'?'Tam duruş riski var.':'Kısmi üretim etkisi var.'} 72 saat içinde müdahale.`,
+      actions:[
+        '72 saat içinde planlı bakım programlayın',
+        'Durumu saatlik izlemeye alın',
+        'Yedek parça ve teknik ekibi hazırlayın',
+        'Gerekirse yedek vardiya düzenleyin',
+        'İş emri oluşturun ve mühendisi bilgilendirin',
+      ]
+    },
+    go: {
+      cls:'go', icon:'🟢', text:'NORMAL OPERASYONA DEVAM',
+      sub:`Risk seviyesi: ${riskCell[2].toUpperCase()}. Mevcut izleme aralığını koruyun.`,
+      actions:[
+        'Normal üretim operasyonuna devam edin',
+        'İzleme aralığını standart periyotta tutun',
+        'Bir sonraki planlı bakım tarihini güncellemeyi gözönünde bulundurun',
+        'Titreşim/sıcaklık trendini takip etmeye devam edin',
+      ]
+    }
+  };
+
+  const d = decInfo[decision];
+  panel.innerHTML = `
+    <div style="margin-bottom:16px;">
+      <div class="decision-indicator ${d.cls}">
+        <div class="decision-icon">${d.icon}</div>
+        <div class="decision-text" style="color:${decision==='stop'?'var(--crit-text)':decision==='warn'?'var(--warn-text)':'var(--ok-text)'}">${d.text}</div>
+        <div class="decision-sub">${d.sub}</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Önerilen Eylemler</div>
+    <div class="decision-actions-list">
+      ${d.actions.map((a,i) => `
+        <div class="decision-action-item">
+          <span class="da-icon">${i+1}.</span>
+          <span>${a}</span>
+        </div>
+      `).join('')}
+    </div>
+    ${eq ? `
+      <div style="margin-top:16px;padding:12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text2);">
+        <strong style="color:var(--text)">${eq.name}</strong> · Titreşim: ${eq.vib} mm/s · Sıcaklık: ${eq.temp}°C · OEE: ${calcOEE(eq)}%
+      </div>
+    ` : ''}
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="btn btn-sm btn-primary" onclick="navigate('kna')">🔍 KNA Başlat</button>
+      <button class="btn btn-sm" onclick="openAddWorkOrderModal();navigate('cost')">📋 İş Emri</button>
+    </div>
+    <div class="ref-note" style="margin-top:12px;">MEH Risk-Based Maintenance · ISO 31000 Risk Matrisi · Karar tarihi: ${new Date().toLocaleDateString('tr-TR')}</div>
+  `;
+}
+
+// ═══════════════════════
+// MODALS
+// ═══════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if(e.target === overlay) closeModal(overlay.id);
+  });
+});
+
+// ═══════════════════════
+// TOASTS
+// ═══════════════════════
+function showToast(msg, type='success') {
+  const icons = {success:'✅',warn:'⚠️',error:'❌'};
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span><span class="toast-msg">${msg}</span><span class="toast-close" onclick="this.parentElement.remove()">✕</span>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(20px)'; toast.style.transition='all .3s'; setTimeout(()=>toast.remove(),300); }, 3500);
+}
+
+// ═══════════════════════
+// PERIOD FILTERS
+// ═══════════════════════
+function setPeriod(el, p) {
+  document.querySelectorAll('#page-dashboard .filter-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ═══════════════════════
+// START
+// ═══════════════════════
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
